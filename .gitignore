@@ -1,0 +1,84 @@
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# Dependencies
+node_modules/
+*/node_modules/
+
+# Build outputs
+dist/
+build/
+.next/
+out/
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+pnpm-debug.log*
+
+# OS files
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+
+# IDE
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# Testing
+coverage/
+.nyc_output/
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+uploads/
+*/uploads/
+*/temp/
+
+# Docker
+.docker/
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# MinIO/S3 local data
+minio_data/
+
+# Certificates & keys
+*.pem
+*.key
+*.crt
+ssl/
+
+# Backup files
+*.bak
+*.backup
+
+# Python (for AI workers if using Python)
+__pycache__/
+*.py[cod]
+*$py.class
+.Python
+venv/
+env/
+ENV/
+
+# TypeScript
+*.tsbuildinfo
+
+# Editor directories
+.history/
