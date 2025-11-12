@@ -1,0 +1,41 @@
+# Node modules
+node_modules/
+*/node_modules/
+npm-debug.log
+
+# Git
+.git/
+.gitignore
+
+# Environment
+.env
+.env.*
+
+# IDE
+.vscode/
+.idea/
+
+# Logs
+*.log
+logs/
+
+# Test coverage
+coverage/
+
+# Build output
+dist/
+build/
+.next/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Documentation
+*.md
+docs/
+
+# Temporary files
+tmp/
+temp/
+*.tmp
