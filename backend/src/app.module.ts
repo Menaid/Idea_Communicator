@@ -8,6 +8,9 @@ import databaseConfig from './config/database.config';
 import redisConfig from './config/redis.config';
 import storageConfig from './config/storage.config';
 import jwtConfig from './config/jwt.config';
+import { CommonModule } from './common/common.module';
+import { AuthModule } from './auth/auth.module';
+import { UsersModule } from './users/users.module';
 
 @Module({
   imports: [
@@ -38,14 +41,15 @@ import jwtConfig from './config/jwt.config';
       limit: 100, // 100 requests per minute
     }]),
 
-    // Feature modules will be added here
-    // AuthModule,
-    // UsersModule,
-    // GroupsModule,
-    // MessagesModule,
-    // CallsModule,
-    // RecordingsModule,
-    // AiModule,
+    // Feature modules
+    CommonModule,
+    AuthModule,
+    UsersModule,
+    // GroupsModule,       // Phase 2
+    // MessagesModule,     // Phase 2
+    // CallsModule,        // Phase 3
+    // RecordingsModule,   // Phase 4
+    // AiModule,           // Phase 5
   ],
   controllers: [AppController],
   providers: [AppService],
