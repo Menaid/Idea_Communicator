@@ -35,7 +35,7 @@ services:
     networks:
       - ideacomm-network
     healthcheck:
-      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD:-change_me_in_production}", "ping"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -179,7 +179,6 @@ services:
     volumes:
       - ./frontend:/app
       - /app/node_modules
-      - /app/.next
     ports:
       - "5173:5173"
     networks:
