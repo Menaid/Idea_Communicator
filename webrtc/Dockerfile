@@ -6,7 +6,7 @@ FROM node:20-alpine AS development
 WORKDIR /app
 
 # Install dependencies for mediasoup (requires build tools)
-RUN apk add --no-cache python3 make g++ linux-headers
+RUN apk add --no-cache python3 py3-pip make g++ linux-headers
 
 # Copy package files
 COPY package*.json ./
@@ -33,7 +33,7 @@ FROM node:20-alpine AS build
 WORKDIR /app
 
 # Install dependencies for mediasoup
-RUN apk add --no-cache python3 make g++ linux-headers
+RUN apk add --no-cache python3 py3-pip make g++ linux-headers
 
 # Copy package files
 COPY package*.json ./
