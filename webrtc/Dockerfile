@@ -12,7 +12,7 @@ RUN apk add --no-cache python3 make g++ linux-headers
 COPY package*.json ./
 
 # Install dependencies
-RUN npm ci
+RUN npm install
 
 # Copy source code
 COPY . .
@@ -39,7 +39,7 @@ RUN apk add --no-cache python3 make g++ linux-headers
 COPY package*.json ./
 
 # Install all dependencies
-RUN npm ci
+RUN npm install
 
 # Copy source code
 COPY . .
