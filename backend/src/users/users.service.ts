@@ -54,6 +54,11 @@ export class UsersService {
   }
 
   async create(userData: Partial<User>): Promise<User> {
+    // Validate email is provided
+    if (!userData.email) {
+      throw new BadRequestException('Email is required');
+    }
+
     // Check if user already exists
     const existingUser = await this.findByEmail(userData.email);
     if (existingUser) {

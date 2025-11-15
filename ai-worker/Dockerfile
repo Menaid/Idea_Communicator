@@ -12,7 +12,7 @@ RUN apk add --no-cache python3 make g++ ffmpeg
 COPY package*.json ./
 
 # Install dependencies
-RUN npm ci
+RUN npm install
 
 # Copy source code
 COPY . .
@@ -37,7 +37,7 @@ RUN apk add --no-cache python3 make g++
 COPY package*.json ./
 
 # Install all dependencies
-RUN npm ci
+RUN npm install
 
 # Copy source code
 COPY . .
