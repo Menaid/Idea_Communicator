@@ -7,7 +7,7 @@ import {
   JoinColumn,
   Unique,
 } from 'typeorm';
-import { User } from '../../users/user.entity';
+import { User } from '../../users/entities/user.entity';
 import { Group } from './group.entity';
 
 @Entity('group_members')
