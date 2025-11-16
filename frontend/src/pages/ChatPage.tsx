@@ -245,7 +245,7 @@ export const ChatPage: React.FC = () => {
                     <div className={`max-w-[70%] ${message.senderId === user?.id ? 'bg-indigo-600 text-white' : 'bg-white'} rounded-lg px-4 py-2 shadow`}>
                       {message.senderId !== user?.id && (
                         <div className="text-xs font-medium mb-1 text-gray-600">
-                          {message.sender?.username || 'Unknown'}
+                          {message.sender ? `${message.sender.firstName} ${message.sender.lastName}` : 'Unknown'}
                         </div>
                       )}
                       <div className="text-sm">{message.content}</div>
@@ -305,14 +305,14 @@ export const ChatPage: React.FC = () => {
               {selectedGroup.members?.map((member) => (
                 <div key={member.id} className="flex items-center space-x-2 p-2 rounded hover:bg-gray-50">
                   <div className="w-8 h-8 rounded-full bg-indigo-600 flex items-center justify-center text-white text-sm font-medium">
-                    {member.user.username[0].toUpperCase()}
+                    {member.user?.firstName?.[0]?.toUpperCase() || '?'}
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="text-sm font-medium text-gray-900 truncate">
-                      {member.user.username}
+                      {member.user ? `${member.user.firstName} ${member.user.lastName}` : 'Unknown'}
                       {member.role === 'admin' && <span className="ml-1 text-xs text-indigo-600">(Admin)</span>}
                     </div>
-                    <div className="text-xs text-gray-500">{member.user.email}</div>
+                    <div className="text-xs text-gray-500">{member.user?.email || 'N/A'}</div>
                   </div>
                 </div>
               ))}
