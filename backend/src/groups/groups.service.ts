@@ -60,7 +60,45 @@ export class GroupsService {
       relations: ['group', 'group.createdBy', 'group.members', 'group.members.user'],
     });
 
-    return memberGroups.map(mg => mg.group).filter(g => g.isActive);
+    const groups = memberGroups.map(mg => mg.group).filter(g => g.isActive);
+
+    // Add unread count to each group
+    for (const group of groups) {
+      const memberData = memberGroups.find(mg => mg.groupId === group.id);
+      (group as any).unreadCount = await this.getUnreadCount(group.id, userId, memberData?.lastReadAt);
+    }
+
+    return groups;
+  }
+
+  async getUnreadCount(groupId: string, userId: string, lastReadAt?: Date): Promise<number> {
+    const query = this.groupsRepository.manager
+      .createQueryBuilder()
+      .select('COUNT(*)', 'count')
+      .from('messages', 'message')
+      .where('message.groupId = :groupId', { groupId })
+      .andWhere('message.senderId != :userId', { userId })
+      .andWhere('message.isDeleted = false');
+
+    if (lastReadAt) {
+      query.andWhere('message.createdAt > :lastReadAt', { lastReadAt });
+    }
+
+    const result = await query.getRawOne();
+    return parseInt(result.count, 10);
+  }
+
+  async markAsRead(groupId: string, userId: string): Promise<void> {
+    const member = await this.groupMembersRepository.findOne({
+      where: { groupId, userId, isActive: true },
+    });
+
+    if (!member) {
+      throw new NotFoundException('Group membership not found');
+    }
+
+    member.lastReadAt = new Date();
+    await this.groupMembersRepository.save(member);
   }
 
   async findOne(groupId: string, userId: string): Promise<Group> {

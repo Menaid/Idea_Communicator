@@ -10,6 +10,7 @@ export interface Group {
   createdById: string;
   createdBy: User;
   members: GroupMember[];
+  unreadCount?: number;
   createdAt: Date;
   updatedAt: Date;
 }

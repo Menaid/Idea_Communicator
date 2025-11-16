@@ -50,6 +50,18 @@ export const ChatPage: React.FC = () => {
     if (selectedGroup) {
       loadMessages(selectedGroup.id);
 
+      // Mark messages as read when selecting a group
+      groupsService.markAsRead(selectedGroup.id).catch((error) => {
+        console.error('Failed to mark as read:', error);
+      });
+
+      // Update local unread count
+      setGroups(prevGroups =>
+        prevGroups.map(g =>
+          g.id === selectedGroup.id ? { ...g, unreadCount: 0 } : g
+        )
+      );
+
       if (socket) {
         socket.emit('group:join', { groupId: selectedGroup.id });
       }
@@ -63,6 +75,15 @@ export const ChatPage: React.FC = () => {
       if (message.groupId === selectedGroup?.id) {
         setMessages((prev) => [message, ...prev]);
         scrollToBottom();
+      } else {
+        // Increment unread count for other groups
+        setGroups(prevGroups =>
+          prevGroups.map(g =>
+            g.id === message.groupId
+              ? { ...g, unreadCount: (g.unreadCount || 0) + 1 }
+              : g
+          )
+        );
       }
     });
 
@@ -309,11 +330,16 @@ export const ChatPage: React.FC = () => {
               <button
                 key={group.id}
                 onClick={() => setSelectedGroup(group)}
-                className={`w-full p-3 text-left hover:bg-gray-50 transition border-b ${selectedGroup?.id === group.id ? 'bg-indigo-50 border-l-4 border-indigo-600' : ''}`}
+                className={`w-full p-3 text-left hover:bg-gray-50 transition border-b relative ${selectedGroup?.id === group.id ? 'bg-indigo-50 border-l-4 border-indigo-600' : ''}`}
               >
                 <div className="font-medium text-gray-900">{group.name}</div>
                 <div className="text-xs text-gray-500 truncate">{group.description || 'No description'}</div>
                 <div className="text-xs text-gray-400 mt-1">{group.members?.length || 0} members</div>
+                {group.unreadCount && group.unreadCount > 0 && (
+                  <div className="absolute top-2 right-2 bg-red-600 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">
+                    {group.unreadCount > 99 ? '99+' : group.unreadCount}
+                  </div>
+                )}
               </button>
             ))}
           </div>

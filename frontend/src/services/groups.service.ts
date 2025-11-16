@@ -42,4 +42,8 @@ export const groupsService = {
   async removeMember(groupId: string, userId: string): Promise<void> {
     await api.delete(`/groups/${groupId}/members/${userId}`);
   },
+
+  async markAsRead(groupId: string): Promise<void> {
+    await api.patch(`/groups/${groupId}/mark-read`);
+  },
 };

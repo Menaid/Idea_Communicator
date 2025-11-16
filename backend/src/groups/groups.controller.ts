@@ -3,6 +3,7 @@ import {
   Get,
   Post,
   Put,
+  Patch,
   Delete,
   Body,
   Param,
@@ -97,5 +98,16 @@ export class GroupsController {
   ) {
     await this.groupsService.removeMember(id, req.user.id, userId);
     return { message: 'Member removed successfully' };
+  }
+
+  @Patch(':id/mark-read')
+  @ApiOperation({ summary: 'Mark all messages in group as read' })
+  @ApiResponse({ status: 200, description: 'Messages marked as read' })
+  async markAsRead(
+    @Request() req: ExpressRequest & { user: any },
+    @Param('id') id: string,
+  ) {
+    await this.groupsService.markAsRead(id, req.user.id);
+    return { message: 'Messages marked as read' };
   }
 }
