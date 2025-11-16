@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { ChatGateway } from './chat.gateway';
@@ -9,7 +9,7 @@ import { UsersModule } from '../users/users.module';
 @Module({
   imports: [
     MessagesModule,
-    GroupsModule,
+    forwardRef(() => GroupsModule),
     UsersModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],
@@ -20,5 +20,6 @@ import { UsersModule } from '../users/users.module';
     }),
   ],
   providers: [ChatGateway],
+  exports: [ChatGateway],
 })
 export class ChatModule {}

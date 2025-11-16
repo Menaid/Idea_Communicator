@@ -3,6 +3,8 @@ import {
   NotFoundException,
   ForbiddenException,
   BadRequestException,
+  Inject,
+  forwardRef,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, In } from 'typeorm';
@@ -11,6 +13,7 @@ import { GroupMember } from './entities/group-member.entity';
 import { CreateGroupDto } from './dto/create-group.dto';
 import { UpdateGroupDto } from './dto/update-group.dto';
 import { AddMemberDto } from './dto/add-member.dto';
+import { ChatGateway } from '../chat/chat.gateway';
 
 @Injectable()
 export class GroupsService {
@@ -19,6 +22,8 @@ export class GroupsService {
     private groupsRepository: Repository<Group>,
     @InjectRepository(GroupMember)
     private groupMembersRepository: Repository<GroupMember>,
+    @Inject(forwardRef(() => ChatGateway))
+    private chatGateway: ChatGateway,
   ) {}
 
   async create(userId: string, createGroupDto: CreateGroupDto): Promise<Group> {
@@ -128,7 +133,17 @@ export class GroupsService {
         // Reactivate membership
         existingMember.isActive = true;
         existingMember.role = addMemberDto.role || 'member';
-        return this.groupMembersRepository.save(existingMember);
+        const reactivatedMember = await this.groupMembersRepository.save(existingMember);
+
+        // Send notification to the re-added user
+        this.chatGateway.notifyUserAddedToGroup(
+          addMemberDto.userId,
+          groupId,
+          group.name,
+          userId,
+        );
+
+        return reactivatedMember;
       }
     }
 
@@ -138,7 +153,17 @@ export class GroupsService {
       role: addMemberDto.role || 'member',
     });
 
-    return this.groupMembersRepository.save(newMember);
+    const savedMember = await this.groupMembersRepository.save(newMember);
+
+    // Send notification to the newly added user
+    this.chatGateway.notifyUserAddedToGroup(
+      addMemberDto.userId,
+      groupId,
+      group.name,
+      userId, // The user who invited them
+    );
+
+    return savedMember;
   }
 
   async removeMember(groupId: string, userId: string, memberIdToRemove: string): Promise<void> {

@@ -7,7 +7,7 @@ import { messagesService } from '../services/messages.service';
 import { usersService } from '../services/users.service';
 import { Group } from '../types/group.types';
 import { Message } from '../types/message.types';
-import { User } from '../types/auth.types';
+import { User } from '../types/auth';
 import toast from 'react-hot-toast';
 
 export const ChatPage: React.FC = () => {
@@ -64,10 +64,25 @@ export const ChatPage: React.FC = () => {
       }
     });
 
+    socket.on('notification:group-invitation', (notification: {
+      type: string;
+      groupId: string;
+      groupName: string;
+      invitedBy: string;
+      timestamp: Date;
+    }) => {
+      toast.success(`You've been added to the group "${notification.groupName}"!`, {
+        duration: 5000,
+      });
+      // Reload groups to show the new group
+      loadGroups();
+    });
+
     return () => {
       socket.off('message:new');
       socket.off('typing:start');
       socket.off('typing:stop');
+      socket.off('notification:group-invitation');
     };
   }, [socket, selectedGroup, user]);
 

@@ -60,6 +60,9 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       // Update user online status
       await this.usersService.updateOnlineStatus(userId, 'online');
 
+      // Join user's personal room for notifications
+      client.join(`user:${userId}`);
+
       // Get user's groups and join rooms
       const groups = await this.groupsService.findAll(userId);
       groups.forEach(group => {
@@ -186,5 +189,17 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   ) {
     client.leave(`group:${data.groupId}`);
     return { success: true };
+  }
+
+  // Public method for sending notifications to specific users
+  notifyUserAddedToGroup(userId: string, groupId: string, groupName: string, invitedBy: string) {
+    this.server.to(`user:${userId}`).emit('notification:group-invitation', {
+      type: 'group_invitation',
+      groupId,
+      groupName,
+      invitedBy,
+      timestamp: new Date(),
+    });
+    this.logger.log(`Sent group invitation notification to user ${userId} for group ${groupId}`);
   }
 }
