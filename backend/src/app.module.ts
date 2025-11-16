@@ -8,11 +8,9 @@ import databaseConfig from './config/database.config';
 import redisConfig from './config/redis.config';
 import storageConfig from './config/storage.config';
 import jwtConfig from './config/jwt.config';
+import { CommonModule } from './common/common.module';
 import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
-import { GroupsModule } from './groups/groups.module';
-import { MessagesModule } from './messages/messages.module';
-import { ChatModule } from './chat/chat.module';
 
 @Module({
   imports: [
@@ -44,14 +42,14 @@ import { ChatModule } from './chat/chat.module';
     }]),
 
     // Feature modules
+    CommonModule,
     AuthModule,
     UsersModule,
-    GroupsModule,
-    MessagesModule,
-    ChatModule,
-    // CallsModule,
-    // RecordingsModule,
-    // AiModule,
+    // GroupsModule,       // Phase 2
+    // MessagesModule,     // Phase 2
+    // CallsModule,        // Phase 3
+    // RecordingsModule,   // Phase 4
+    // AiModule,           // Phase 5
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -1,57 +1,56 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { User, LoginCredentials, RegisterData } from '../types/auth.types';
-import { authService } from '../services/auth.service';
+import { apiService } from '../services/api';
+import type { User, LoginData, RegisterData } from '../types/auth';
 import toast from 'react-hot-toast';
 
 interface AuthContextType {
   user: User | null;
-  loading: boolean;
-  login: (credentials: LoginCredentials) => Promise<void>;
+  isLoading: boolean;
+  isAuthenticated: boolean;
+  login: (data: LoginData) => Promise<void>;
   register: (data: RegisterData) => Promise<void>;
   logout: () => Promise<void>;
-  updateUser: (data: Partial<User>) => Promise<void>;
-  isAuthenticated: boolean;
+  updateUser: (user: User) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
-  return context;
-};
-
-interface AuthProviderProps {
-  children: ReactNode;
-}
-
-export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
+export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    checkAuth();
+    // Load user from localStorage on mount
+    const loadUser = async () => {
+      try {
+        if (apiService.isAuthenticated()) {
+          const currentUser = apiService.getCurrentUser();
+          if (currentUser) {
+            setUser(currentUser);
+            // Verify token is still valid
+            try {
+              const freshUser = await apiService.getMe();
+              setUser(freshUser);
+            } catch (error) {
+              // Token invalid, clear state
+              setUser(null);
+              await apiService.logout();
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Error loading user:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadUser();
   }, []);
 
-  const checkAuth = async () => {
-    const token = authService.getAccessToken();
-    if (token) {
-      try {
-        const userData = await authService.getCurrentUser();
-        setUser(userData);
-      } catch (error) {
-        authService.clearTokens();
-      }
-    }
-    setLoading(false);
-  };
-
-  const login = async (credentials: LoginCredentials) => {
+  const login = async (data: LoginData) => {
     try {
-      const response = await authService.login(credentials);
-      authService.saveTokens(response.accessToken, response.refreshToken);
+      const response = await apiService.login(data);
       setUser(response.user);
       toast.success('Welcome back!');
     } catch (error: any) {
@@ -63,8 +62,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const register = async (data: RegisterData) => {
     try {
-      const response = await authService.register(data);
-      authService.saveTokens(response.accessToken, response.refreshToken);
+      const response = await apiService.register(data);
       setUser(response.user);
       toast.success('Account created successfully!');
     } catch (error: any) {
@@ -76,37 +74,41 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const logout = async () => {
     try {
-      await authService.logout();
-    } catch (error) {
-      console.error('Logout error:', error);
-    } finally {
-      authService.clearTokens();
+      await apiService.logout();
       setUser(null);
       toast.success('Logged out successfully');
+    } catch (error) {
+      console.error('Logout error:', error);
+      // Still clear local state even if API call fails
+      setUser(null);
     }
   };
 
-  const updateUser = async (data: Partial<User>) => {
-    try {
-      const updatedUser = await authService.updateProfile(data);
-      setUser(updatedUser);
-      toast.success('Profile updated successfully');
-    } catch (error: any) {
-      const message = error.response?.data?.message || 'Update failed';
-      toast.error(message);
-      throw error;
-    }
+  const updateUser = (updatedUser: User) => {
+    setUser(updatedUser);
   };
 
-  const value = {
-    user,
-    loading,
-    login,
-    register,
-    logout,
-    updateUser,
-    isAuthenticated: !!user,
-  };
+  return (
+    <AuthContext.Provider
+      value={{
+        user,
+        isLoading,
+        isAuthenticated: !!user,
+        login,
+        register,
+        logout,
+        updateUser,
+      }}
+    >
+      {children}
+    </AuthContext.Provider>
+  );
+}
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
-};
+export function useAuth() {
+  const context = useContext(AuthContext);
+  if (context === undefined) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  return context;
+}
