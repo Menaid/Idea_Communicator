@@ -5,8 +5,8 @@ import { ThrottlerModule } from '@nestjs/throttler';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import databaseConfig from './config/database.config';
-import redisConfig from './config/redis.config';
-import storageConfig from './config/storage.config';
+// import redisConfig from './config/redis.config'; // TODO: Implement Redis cache for future use
+// import storageConfig from './config/storage.config'; // TODO: Implement MinIO storage for future use
 import jwtConfig from './config/jwt.config';
 import { CommonModule } from './common/common.module';
 import { AuthModule } from './auth/auth.module';
@@ -20,7 +20,7 @@ import { ChatModule } from './chat/chat.module';
     // Configuration
     ConfigModule.forRoot({
       isGlobal: true,
-      load: [databaseConfig, redisConfig, storageConfig, jwtConfig],
+      load: [databaseConfig, jwtConfig], // redisConfig and storageConfig available for future use
       envFilePath: process.env.NODE_ENV === 'production' ? '.env' : '.env',
     }),
 

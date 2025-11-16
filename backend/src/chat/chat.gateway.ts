@@ -8,7 +8,7 @@ import {
   ConnectedSocket,
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
-import { UseGuards } from '@nestjs/common';
+import { UseGuards, Logger } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { MessagesService } from '../messages/messages.service';
 import { GroupsService } from '../groups/groups.service';
@@ -26,6 +26,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer()
   server: Server;
 
+  private readonly logger = new Logger(ChatGateway.name);
   private userSockets: Map<string, Set<string>> = new Map(); // userId -> Set of socketIds
 
   constructor(
@@ -73,9 +74,9 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
         });
       });
 
-      console.log(`Client connected: ${client.id} (User: ${userId})`);
+      this.logger.log(`Client connected: ${client.id} (User: ${userId})`);
     } catch (error) {
-      console.error('Connection error:', error);
+      this.logger.error('Connection error:', error);
       client.disconnect();
     }
   }
@@ -104,12 +105,12 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
               });
             });
           } catch (error) {
-            console.error('Error notifying offline status:', error);
+            this.logger.error('Error notifying offline status:', error);
           }
         }
       }
 
-      console.log(`Client disconnected: ${client.id} (User: ${userId})`);
+      this.logger.log(`Client disconnected: ${client.id} (User: ${userId})`);
     }
   }
 
@@ -129,7 +130,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
       return { success: true, message };
     } catch (error) {
-      console.error('Error sending message:', error);
+      this.logger.error('Error sending message:', error);
       return { success: false, error: error.message };
     }
   }

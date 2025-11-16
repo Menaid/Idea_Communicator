@@ -24,12 +24,10 @@ export const useSocket = () => {
     });
 
     socket.on('connect', () => {
-      console.log('Socket connected');
       setIsConnected(true);
     });
 
     socket.on('disconnect', () => {
-      console.log('Socket disconnected');
       setIsConnected(false);
     });
 
