@@ -1,0 +1,368 @@
+import React, { useState, useEffect, useRef } from 'react';
+import { useAuth } from '../contexts/AuthContext';
+import { useSocket } from '../hooks/useSocket';
+import { groupsService } from '../services/groups.service';
+import { messagesService } from '../services/messages.service';
+import { Group } from '../types/group.types';
+import { Message } from '../types/message.types';
+import toast from 'react-hot-toast';
+
+export const ChatPage: React.FC = () => {
+  const { user, logout } = useAuth();
+  const { socket, isConnected } = useSocket();
+  const [groups, setGroups] = useState<Group[]>([]);
+  const [selectedGroup, setSelectedGroup] = useState<Group | null>(null);
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [messageInput, setMessageInput] = useState('');
+  const [showCreateGroup, setShowCreateGroup] = useState(false);
+  const [newGroupName, setNewGroupName] = useState('');
+  const [newGroupDescription, setNewGroupDescription] = useState('');
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [isTyping, setIsTyping] = useState(false);
+  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    loadGroups();
+  }, []);
+
+  useEffect(() => {
+    if (selectedGroup) {
+      loadMessages(selectedGroup.id);
+
+      if (socket) {
+        socket.emit('group:join', { groupId: selectedGroup.id });
+      }
+    }
+  }, [selectedGroup]);
+
+  useEffect(() => {
+    if (!socket) return;
+
+    socket.on('message:new', (message: Message) => {
+      if (message.groupId === selectedGroup?.id) {
+        setMessages((prev) => [message, ...prev]);
+        scrollToBottom();
+      }
+    });
+
+    socket.on('typing:start', ({ userId, groupId }) => {
+      if (groupId === selectedGroup?.id && userId !== user?.id) {
+        setIsTyping(true);
+      }
+    });
+
+    socket.on('typing:stop', ({ userId, groupId }) => {
+      if (groupId === selectedGroup?.id && userId !== user?.id) {
+        setIsTyping(false);
+      }
+    });
+
+    return () => {
+      socket.off('message:new');
+      socket.off('typing:start');
+      socket.off('typing:stop');
+    };
+  }, [socket, selectedGroup, user]);
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  const loadGroups = async () => {
+    try {
+      const data = await groupsService.getAll();
+      setGroups(data);
+      if (data.length > 0 && !selectedGroup) {
+        setSelectedGroup(data[0]);
+      }
+    } catch (error) {
+      toast.error('Failed to load groups');
+    }
+  };
+
+  const loadMessages = async (groupId: string) => {
+    try {
+      const data = await messagesService.getByGroup(groupId, 50);
+      setMessages(data.reverse());
+    } catch (error) {
+      toast.error('Failed to load messages');
+    }
+  };
+
+  const handleCreateGroup = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const newGroup = await groupsService.create({
+        name: newGroupName,
+        description: newGroupDescription,
+      });
+      setGroups([...groups, newGroup]);
+      setShowCreateGroup(false);
+      setNewGroupName('');
+      setNewGroupDescription('');
+      toast.success('Group created successfully');
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || 'Failed to create group');
+    }
+  };
+
+  const handleSendMessage = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!messageInput.trim() || !selectedGroup) return;
+
+    try {
+      if (socket && isConnected) {
+        socket.emit('message:send', {
+          groupId: selectedGroup.id,
+          content: messageInput,
+          type: 'text',
+        });
+      } else {
+        await messagesService.create({
+          groupId: selectedGroup.id,
+          content: messageInput,
+          type: 'text',
+        });
+      }
+      setMessageInput('');
+      handleTypingStop();
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || 'Failed to send message');
+    }
+  };
+
+  const handleTypingStart = () => {
+    if (!socket || !selectedGroup) return;
+
+    socket.emit('typing:start', { groupId: selectedGroup.id });
+
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+    }
+
+    typingTimeoutRef.current = setTimeout(() => {
+      handleTypingStop();
+    }, 3000);
+  };
+
+  const handleTypingStop = () => {
+    if (!socket || !selectedGroup) return;
+
+    socket.emit('typing:stop', { groupId: selectedGroup.id });
+
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+      typingTimeoutRef.current = null;
+    }
+  };
+
+  const formatTime = (date: Date) => {
+    return new Date(date).toLocaleTimeString('en-US', {
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  };
+
+  return (
+    <div className="h-screen flex flex-col bg-gray-50">
+      {/* Header */}
+      <header className="bg-white shadow-sm border-b">
+        <div className="px-4 py-3 flex justify-between items-center">
+          <div className="flex items-center space-x-3">
+            <h1 className="text-xl font-bold text-gray-900">Idea Communicator</h1>
+            <span className={`inline-flex items-center px-2 py-1 rounded text-xs font-medium ${isConnected ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+              {isConnected ? '● Connected' : '● Disconnected'}
+            </span>
+          </div>
+          <div className="flex items-center space-x-3">
+            <span className="text-sm text-gray-600">{user?.username}</span>
+            <button
+              onClick={() => logout()}
+              className="px-3 py-1.5 text-sm text-white bg-red-600 hover:bg-red-700 rounded transition"
+            >
+              Logout
+            </button>
+          </div>
+        </div>
+      </header>
+
+      <div className="flex-1 flex overflow-hidden">
+        {/* Sidebar - Groups List */}
+        <div className="w-64 bg-white border-r flex flex-col">
+          <div className="p-3 border-b">
+            <button
+              onClick={() => setShowCreateGroup(true)}
+              className="w-full px-3 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700 transition text-sm font-medium"
+            >
+              + Create Group
+            </button>
+          </div>
+
+          <div className="flex-1 overflow-y-auto">
+            {groups.map((group) => (
+              <button
+                key={group.id}
+                onClick={() => setSelectedGroup(group)}
+                className={`w-full p-3 text-left hover:bg-gray-50 transition border-b ${selectedGroup?.id === group.id ? 'bg-indigo-50 border-l-4 border-indigo-600' : ''}`}
+              >
+                <div className="font-medium text-gray-900">{group.name}</div>
+                <div className="text-xs text-gray-500 truncate">{group.description || 'No description'}</div>
+                <div className="text-xs text-gray-400 mt-1">{group.members?.length || 0} members</div>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Main Chat Area */}
+        <div className="flex-1 flex flex-col">
+          {selectedGroup ? (
+            <>
+              {/* Chat Header */}
+              <div className="bg-white border-b px-4 py-3">
+                <h2 className="font-semibold text-gray-900">{selectedGroup.name}</h2>
+                <p className="text-sm text-gray-500">{selectedGroup.description}</p>
+              </div>
+
+              {/* Messages */}
+              <div className="flex-1 overflow-y-auto p-4 space-y-3">
+                {messages.map((message) => (
+                  <div
+                    key={message.id}
+                    className={`flex ${message.senderId === user?.id ? 'justify-end' : 'justify-start'}`}
+                  >
+                    <div className={`max-w-[70%] ${message.senderId === user?.id ? 'bg-indigo-600 text-white' : 'bg-white'} rounded-lg px-4 py-2 shadow`}>
+                      {message.senderId !== user?.id && (
+                        <div className="text-xs font-medium mb-1 text-gray-600">
+                          {message.sender?.username || 'Unknown'}
+                        </div>
+                      )}
+                      <div className="text-sm">{message.content}</div>
+                      <div className={`text-xs mt-1 ${message.senderId === user?.id ? 'text-indigo-200' : 'text-gray-400'}`}>
+                        {formatTime(message.createdAt)}
+                        {message.isEdited && ' (edited)'}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+                {isTyping && (
+                  <div className="flex justify-start">
+                    <div className="bg-gray-200 rounded-lg px-4 py-2">
+                      <div className="text-sm text-gray-500">Someone is typing...</div>
+                    </div>
+                  </div>
+                )}
+                <div ref={messagesEndRef} />
+              </div>
+
+              {/* Message Input */}
+              <form onSubmit={handleSendMessage} className="bg-white border-t p-4">
+                <div className="flex space-x-2">
+                  <input
+                    type="text"
+                    value={messageInput}
+                    onChange={(e) => {
+                      setMessageInput(e.target.value);
+                      handleTypingStart();
+                    }}
+                    onBlur={handleTypingStop}
+                    placeholder="Type a message..."
+                    className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  />
+                  <button
+                    type="submit"
+                    disabled={!messageInput.trim()}
+                    className="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition font-medium"
+                  >
+                    Send
+                  </button>
+                </div>
+              </form>
+            </>
+          ) : (
+            <div className="flex-1 flex items-center justify-center text-gray-500">
+              Select a group to start chatting
+            </div>
+          )}
+        </div>
+
+        {/* Right Sidebar - Members (if group selected) */}
+        {selectedGroup && (
+          <div className="w-64 bg-white border-l p-4">
+            <h3 className="font-semibold mb-3">Members ({selectedGroup.members?.length || 0})</h3>
+            <div className="space-y-2">
+              {selectedGroup.members?.map((member) => (
+                <div key={member.id} className="flex items-center space-x-2 p-2 rounded hover:bg-gray-50">
+                  <div className="w-8 h-8 rounded-full bg-indigo-600 flex items-center justify-center text-white text-sm font-medium">
+                    {member.user.username[0].toUpperCase()}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-medium text-gray-900 truncate">
+                      {member.user.username}
+                      {member.role === 'admin' && <span className="ml-1 text-xs text-indigo-600">(Admin)</span>}
+                    </div>
+                    <div className="text-xs text-gray-500">{member.user.email}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Create Group Modal */}
+      {showCreateGroup && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-md">
+            <h2 className="text-xl font-bold mb-4">Create New Group</h2>
+            <form onSubmit={handleCreateGroup} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Group Name
+                </label>
+                <input
+                  type="text"
+                  value={newGroupName}
+                  onChange={(e) => setNewGroupName(e.target.value)}
+                  required
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  placeholder="Enter group name"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Description (optional)
+                </label>
+                <textarea
+                  value={newGroupDescription}
+                  onChange={(e) => setNewGroupDescription(e.target.value)}
+                  rows={3}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  placeholder="Enter group description"
+                />
+              </div>
+              <div className="flex space-x-2">
+                <button
+                  type="button"
+                  onClick={() => setShowCreateGroup(false)}
+                  className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition"
+                >
+                  Create
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};

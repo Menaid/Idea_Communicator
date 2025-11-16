@@ -1,5 +1,10 @@
 # Idea Communicator
 
+git clone <your-repo>
+cd Idea_Communicator
+docker compose -f docker-compose.prod.yml pull
+docker compose -f docker-compose.prod.yml up -d
+
 AI-powered communication app for teams with automatic recording, transcription, and summarization.
 
 ## 📋 Project Overview
