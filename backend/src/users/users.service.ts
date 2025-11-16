@@ -239,7 +239,6 @@ export class UsersService {
     return this.usersRepository
       .createQueryBuilder('user')
       .where('user.isActive = :isActive', { isActive: true })
-      .andWhere('user.deletionRequested = :deletionRequested', { deletionRequested: false })
       .andWhere(
         '(LOWER(user.email) LIKE :searchTerm OR LOWER(user.firstName) LIKE :searchTerm OR LOWER(user.lastName) LIKE :searchTerm)',
         { searchTerm }
