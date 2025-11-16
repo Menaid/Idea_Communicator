@@ -11,6 +11,9 @@ import jwtConfig from './config/jwt.config';
 import { CommonModule } from './common/common.module';
 import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
+import { GroupsModule } from './groups/groups.module';
+import { MessagesModule } from './messages/messages.module';
+import { ChatModule } from './chat/chat.module';
 
 @Module({
   imports: [
@@ -45,8 +48,9 @@ import { UsersModule } from './users/users.module';
     CommonModule,
     AuthModule,
     UsersModule,
-    // GroupsModule,       // Phase 2
-    // MessagesModule,     // Phase 2
+    GroupsModule,        // Phase 2
+    MessagesModule,      // Phase 2
+    ChatModule,          // Phase 2 - WebSocket Gateway
     // CallsModule,        // Phase 3
     // RecordingsModule,   // Phase 4
     // AiModule,           // Phase 5
