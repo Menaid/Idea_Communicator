@@ -13,6 +13,8 @@ import { JwtService } from '@nestjs/jwt';
 import { MessagesService } from '../messages/messages.service';
 import { GroupsService } from '../groups/groups.service';
 import { UsersService } from '../users/users.service';
+import { NotificationsService } from '../notifications/notifications.service';
+import { NotificationType } from '../notifications/entities/notification.entity';
 import { CreateMessageDto } from '../messages/dto/create-message.dto';
 
 @WebSocketGateway({
@@ -35,6 +37,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @Inject(forwardRef(() => GroupsService))
     private groupsService: GroupsService,
     private usersService: UsersService,
+    private notificationsService: NotificationsService,
   ) {}
 
   async handleConnection(client: Socket) {
@@ -193,14 +196,27 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   }
 
   // Public method for sending notifications to specific users
-  notifyUserAddedToGroup(userId: string, groupId: string, groupName: string, invitedBy: string) {
+  async notifyUserAddedToGroup(userId: string, groupId: string, groupName: string, invitedBy: string) {
+    // Save notification to database
+    const notification = await this.notificationsService.create({
+      userId,
+      type: NotificationType.GROUP_INVITATION,
+      title: 'New Group Invitation',
+      message: `You have been added to the group "${groupName}"`,
+      groupId,
+      actorId: invitedBy,
+    });
+
+    // Send real-time notification via WebSocket
     this.server.to(`user:${userId}`).emit('notification:group-invitation', {
+      ...notification,
       type: 'group_invitation',
       groupId,
       groupName,
       invitedBy,
       timestamp: new Date(),
     });
+
     this.logger.log(`Sent group invitation notification to user ${userId} for group ${groupId}`);
   }
 }

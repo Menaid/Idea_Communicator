@@ -5,9 +5,12 @@ import { useSocket } from '../hooks/useSocket';
 import { groupsService } from '../services/groups.service';
 import { messagesService } from '../services/messages.service';
 import { usersService } from '../services/users.service';
+import { notificationsService } from '../services/notifications.service';
 import { Group } from '../types/group.types';
 import { Message } from '../types/message.types';
 import { User } from '../types/auth';
+import { Notification } from '../types/notification';
+import { NotificationBell } from '../components/NotificationBell';
 import toast from 'react-hot-toast';
 
 export const ChatPage: React.FC = () => {
@@ -24,13 +27,24 @@ export const ChatPage: React.FC = () => {
   const [showAddMember, setShowAddMember] = useState(false);
   const [userSearch, setUserSearch] = useState('');
   const [searchResults, setSearchResults] = useState<User[]>([]);
+  const [unreadNotificationsCount, setUnreadNotificationsCount] = useState(0);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [isTyping, setIsTyping] = useState(false);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     loadGroups();
+    loadUnreadNotificationsCount();
   }, []);
+
+  const loadUnreadNotificationsCount = async () => {
+    try {
+      const count = await notificationsService.getUnreadCount();
+      setUnreadNotificationsCount(count);
+    } catch (error) {
+      console.error('Failed to load unread notifications count:', error);
+    }
+  };
 
   useEffect(() => {
     if (selectedGroup) {
@@ -76,6 +90,8 @@ export const ChatPage: React.FC = () => {
       });
       // Reload groups to show the new group
       loadGroups();
+      // Increment unread notifications count
+      setUnreadNotificationsCount(prev => prev + 1);
     });
 
     return () => {
@@ -225,6 +241,23 @@ export const ChatPage: React.FC = () => {
     }
   };
 
+  const handleNotificationClick = async (notification: Notification) => {
+    // If the notification is for a group, select that group
+    if (notification.groupId) {
+      const group = groups.find(g => g.id === notification.groupId);
+      if (group) {
+        setSelectedGroup(group);
+      } else {
+        // Group might be newly added, reload groups
+        await loadGroups();
+        const updatedGroup = groups.find(g => g.id === notification.groupId);
+        if (updatedGroup) {
+          setSelectedGroup(updatedGroup);
+        }
+      }
+    }
+  };
+
   return (
     <div className="h-screen flex flex-col bg-gray-50">
       {/* Header */}
@@ -243,6 +276,11 @@ export const ChatPage: React.FC = () => {
             </span>
           </div>
           <div className="flex items-center space-x-3">
+            <NotificationBell
+              unreadCount={unreadNotificationsCount}
+              onCountChange={setUnreadNotificationsCount}
+              onNotificationClick={handleNotificationClick}
+            />
             <span className="text-sm text-gray-600">{user?.firstName} {user?.lastName}</span>
             <button
               onClick={() => logout()}
