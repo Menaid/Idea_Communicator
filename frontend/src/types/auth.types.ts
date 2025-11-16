@@ -1,11 +1,13 @@
 export interface User {
   id: string;
   email: string;
-  username: string;
-  displayName: string;
-  avatarUrl: string;
+  firstName: string;
+  lastName: string;
+  avatarUrl?: string;
+  role: string;
+  isActive: boolean;
   onlineStatus: string;
-  lastSeenAt: Date;
+  lastLoginAt?: Date;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -23,7 +25,10 @@ export interface LoginCredentials {
 
 export interface RegisterData {
   email: string;
-  username: string;
   password: string;
-  displayName?: string;
+  firstName: string;
+  lastName: string;
+  dataRegion?: string;
+  gdprConsentGiven: boolean;
+  marketingConsent?: boolean;
 }

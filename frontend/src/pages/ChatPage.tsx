@@ -4,8 +4,10 @@ import { useAuth } from '../contexts/AuthContext';
 import { useSocket } from '../hooks/useSocket';
 import { groupsService } from '../services/groups.service';
 import { messagesService } from '../services/messages.service';
+import { usersService } from '../services/users.service';
 import { Group } from '../types/group.types';
 import { Message } from '../types/message.types';
+import { User } from '../types/auth.types';
 import toast from 'react-hot-toast';
 
 export const ChatPage: React.FC = () => {
@@ -19,6 +21,9 @@ export const ChatPage: React.FC = () => {
   const [showCreateGroup, setShowCreateGroup] = useState(false);
   const [newGroupName, setNewGroupName] = useState('');
   const [newGroupDescription, setNewGroupDescription] = useState('');
+  const [showAddMember, setShowAddMember] = useState(false);
+  const [userSearch, setUserSearch] = useState('');
+  const [searchResults, setSearchResults] = useState<User[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [isTyping, setIsTyping] = useState(false);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -169,6 +174,42 @@ export const ChatPage: React.FC = () => {
     });
   };
 
+  const handleSearchUsers = async (query: string) => {
+    setUserSearch(query);
+    if (query.trim().length < 2) {
+      setSearchResults([]);
+      return;
+    }
+
+    try {
+      const results = await usersService.search(query);
+      // Filter out users who are already members
+      const memberIds = selectedGroup?.members?.map(m => m.userId) || [];
+      const filteredResults = results.filter(u => !memberIds.includes(u.id) && u.id !== user?.id);
+      setSearchResults(filteredResults);
+    } catch (error) {
+      toast.error('Failed to search users');
+    }
+  };
+
+  const handleAddMember = async (userId: string) => {
+    if (!selectedGroup) return;
+
+    try {
+      await groupsService.addMember(selectedGroup.id, userId);
+      toast.success('Member added successfully');
+      setShowAddMember(false);
+      setUserSearch('');
+      setSearchResults([]);
+      // Reload the selected group to update members list
+      const updatedGroup = await groupsService.getOne(selectedGroup.id);
+      setSelectedGroup(updatedGroup);
+      loadGroups();
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || 'Failed to add member');
+    }
+  };
+
   return (
     <div className="h-screen flex flex-col bg-gray-50">
       {/* Header */}
@@ -300,7 +341,16 @@ export const ChatPage: React.FC = () => {
         {/* Right Sidebar - Members (if group selected) */}
         {selectedGroup && (
           <div className="w-64 bg-white border-l p-4">
-            <h3 className="font-semibold mb-3">Members ({selectedGroup.members?.length || 0})</h3>
+            <div className="flex justify-between items-center mb-3">
+              <h3 className="font-semibold">Members ({selectedGroup.members?.length || 0})</h3>
+              <button
+                onClick={() => setShowAddMember(true)}
+                className="text-sm text-indigo-600 hover:text-indigo-800"
+                title="Add member"
+              >
+                + Add
+              </button>
+            </div>
             <div className="space-y-2">
               {selectedGroup.members?.map((member) => (
                 <div key={member.id} className="flex items-center space-x-2 p-2 rounded hover:bg-gray-50">
@@ -368,6 +418,81 @@ export const ChatPage: React.FC = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Add Member Modal */}
+      {showAddMember && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-md">
+            <h2 className="text-xl font-bold mb-4">Add Member to {selectedGroup?.name}</h2>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Search Users
+                </label>
+                <input
+                  type="text"
+                  value={userSearch}
+                  onChange={(e) => handleSearchUsers(e.target.value)}
+                  placeholder="Search by name or email..."
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  autoFocus
+                />
+              </div>
+
+              <div className="max-h-64 overflow-y-auto space-y-2">
+                {searchResults.length > 0 ? (
+                  searchResults.map((searchUser) => (
+                    <div
+                      key={searchUser.id}
+                      className="flex items-center justify-between p-2 hover:bg-gray-50 rounded"
+                    >
+                      <div className="flex items-center space-x-2">
+                        <div className="w-8 h-8 rounded-full bg-indigo-600 flex items-center justify-center text-white text-sm font-medium">
+                          {searchUser.firstName?.[0]?.toUpperCase() || '?'}
+                        </div>
+                        <div>
+                          <div className="text-sm font-medium text-gray-900">
+                            {searchUser.firstName} {searchUser.lastName}
+                          </div>
+                          <div className="text-xs text-gray-500">{searchUser.email}</div>
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => handleAddMember(searchUser.id)}
+                        className="px-3 py-1 text-sm bg-indigo-600 text-white rounded hover:bg-indigo-700 transition"
+                      >
+                        Add
+                      </button>
+                    </div>
+                  ))
+                ) : userSearch.length >= 2 ? (
+                  <div className="text-center py-4 text-gray-500 text-sm">
+                    No users found
+                  </div>
+                ) : (
+                  <div className="text-center py-4 text-gray-500 text-sm">
+                    Type at least 2 characters to search
+                  </div>
+                )}
+              </div>
+
+              <div className="flex justify-end">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowAddMember(false);
+                    setUserSearch('');
+                    setSearchResults([]);
+                  }}
+                  className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}
