@@ -28,14 +28,14 @@ export class GroupsController {
   @ApiOperation({ summary: 'Create a new group' })
   @ApiResponse({ status: 201, description: 'Group created successfully' })
   async create(@Request() req: ExpressRequest & { user: any }, @Body() createGroupDto: CreateGroupDto) {
-    return this.groupsService.create(req.user.userId, createGroupDto);
+    return this.groupsService.create(req.user.id, createGroupDto);
   }
 
   @Get()
   @ApiOperation({ summary: 'Get all groups for current user' })
   @ApiResponse({ status: 200, description: 'Returns all groups' })
   async findAll(@Request() req: ExpressRequest & { user: any }) {
-    return this.groupsService.findAll(req.user.userId);
+    return this.groupsService.findAll(req.user.id);
   }
 
   @Get(':id')
@@ -43,7 +43,7 @@ export class GroupsController {
   @ApiResponse({ status: 200, description: 'Returns group details' })
   @ApiResponse({ status: 404, description: 'Group not found' })
   async findOne(@Request() req: ExpressRequest & { user: any }, @Param('id') id: string) {
-    return this.groupsService.findOne(id, req.user.userId);
+    return this.groupsService.findOne(id, req.user.id);
   }
 
   @Put(':id')
@@ -55,7 +55,7 @@ export class GroupsController {
     @Param('id') id: string,
     @Body() updateGroupDto: UpdateGroupDto,
   ) {
-    return this.groupsService.update(id, req.user.userId, updateGroupDto);
+    return this.groupsService.update(id, req.user.id, updateGroupDto);
   }
 
   @Delete(':id')
@@ -63,7 +63,7 @@ export class GroupsController {
   @ApiResponse({ status: 200, description: 'Group deleted successfully' })
   @ApiResponse({ status: 403, description: 'Only creator/admin can delete' })
   async remove(@Request() req: ExpressRequest & { user: any }, @Param('id') id: string) {
-    await this.groupsService.remove(id, req.user.userId);
+    await this.groupsService.remove(id, req.user.id);
     return { message: 'Group deleted successfully' };
   }
 
@@ -71,7 +71,7 @@ export class GroupsController {
   @ApiOperation({ summary: 'Get all members of a group' })
   @ApiResponse({ status: 200, description: 'Returns group members' })
   async getMembers(@Request() req: ExpressRequest & { user: any }, @Param('id') id: string) {
-    return this.groupsService.getMembers(id, req.user.userId);
+    return this.groupsService.getMembers(id, req.user.id);
   }
 
   @Post(':id/members')
@@ -83,7 +83,7 @@ export class GroupsController {
     @Param('id') id: string,
     @Body() addMemberDto: AddMemberDto,
   ) {
-    return this.groupsService.addMember(id, req.user.userId, addMemberDto);
+    return this.groupsService.addMember(id, req.user.id, addMemberDto);
   }
 
   @Delete(':id/members/:userId')
@@ -95,7 +95,7 @@ export class GroupsController {
     @Param('id') id: string,
     @Param('userId') userId: string,
   ) {
-    await this.groupsService.removeMember(id, req.user.userId, userId);
+    await this.groupsService.removeMember(id, req.user.id, userId);
     return { message: 'Member removed successfully' };
   }
 }

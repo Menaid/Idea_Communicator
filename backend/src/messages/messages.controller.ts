@@ -28,7 +28,7 @@ export class MessagesController {
   @ApiOperation({ summary: 'Send a message to a group' })
   @ApiResponse({ status: 201, description: 'Message sent successfully' })
   async create(@Request() req: ExpressRequest & { user: any }, @Body() createMessageDto: CreateMessageDto) {
-    return this.messagesService.create(req.user.userId, createMessageDto);
+    return this.messagesService.create(req.user.id, createMessageDto);
   }
 
   @Get('group/:groupId')
@@ -42,14 +42,14 @@ export class MessagesController {
     @Query('limit') limit?: number,
     @Query('before') before?: string,
   ) {
-    return this.messagesService.findByGroup(groupId, req.user.userId, limit, before);
+    return this.messagesService.findByGroup(groupId, req.user.id, limit, before);
   }
 
   @Get(':id')
   @ApiOperation({ summary: 'Get message by ID' })
   @ApiResponse({ status: 200, description: 'Returns message' })
   async findOne(@Request() req: ExpressRequest & { user: any }, @Param('id') id: string) {
-    return this.messagesService.findOne(id, req.user.userId);
+    return this.messagesService.findOne(id, req.user.id);
   }
 
   @Put(':id')
@@ -61,7 +61,7 @@ export class MessagesController {
     @Param('id') id: string,
     @Body() updateMessageDto: UpdateMessageDto,
   ) {
-    return this.messagesService.update(id, req.user.userId, updateMessageDto);
+    return this.messagesService.update(id, req.user.id, updateMessageDto);
   }
 
   @Delete(':id')
@@ -69,7 +69,7 @@ export class MessagesController {
   @ApiResponse({ status: 200, description: 'Message deleted successfully' })
   @ApiResponse({ status: 403, description: 'Only sender can delete' })
   async remove(@Request() req: ExpressRequest & { user: any }, @Param('id') id: string) {
-    await this.messagesService.remove(id, req.user.userId);
+    await this.messagesService.remove(id, req.user.id);
     return { message: 'Message deleted successfully' };
   }
 }
