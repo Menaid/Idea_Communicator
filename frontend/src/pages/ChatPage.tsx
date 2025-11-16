@@ -335,7 +335,7 @@ export const ChatPage: React.FC = () => {
                 <div className="font-medium text-gray-900">{group.name}</div>
                 <div className="text-xs text-gray-500 truncate">{group.description || 'No description'}</div>
                 <div className="text-xs text-gray-400 mt-1">{group.members?.length || 0} members</div>
-                {group.unreadCount && group.unreadCount > 0 && (
+                {group.unreadCount > 0 && (
                   <div className="absolute top-2 right-2 bg-red-600 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">
                     {group.unreadCount > 99 ? '99+' : group.unreadCount}
                   </div>
