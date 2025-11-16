@@ -8,6 +8,11 @@ import databaseConfig from './config/database.config';
 import redisConfig from './config/redis.config';
 import storageConfig from './config/storage.config';
 import jwtConfig from './config/jwt.config';
+import { AuthModule } from './auth/auth.module';
+import { UsersModule } from './users/users.module';
+import { GroupsModule } from './groups/groups.module';
+import { MessagesModule } from './messages/messages.module';
+import { ChatModule } from './chat/chat.module';
 
 @Module({
   imports: [
@@ -38,11 +43,12 @@ import jwtConfig from './config/jwt.config';
       limit: 100, // 100 requests per minute
     }]),
 
-    // Feature modules will be added here
-    // AuthModule,
-    // UsersModule,
-    // GroupsModule,
-    // MessagesModule,
+    // Feature modules
+    AuthModule,
+    UsersModule,
+    GroupsModule,
+    MessagesModule,
+    ChatModule,
     // CallsModule,
     // RecordingsModule,
     // AiModule,
