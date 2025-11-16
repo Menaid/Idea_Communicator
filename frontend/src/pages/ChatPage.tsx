@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useSocket } from '../hooks/useSocket';
 import { groupsService } from '../services/groups.service';
@@ -9,6 +10,7 @@ import toast from 'react-hot-toast';
 
 export const ChatPage: React.FC = () => {
   const { user, logout } = useAuth();
+  const navigate = useNavigate();
   const { socket, isConnected } = useSocket();
   const [groups, setGroups] = useState<Group[]>([]);
   const [selectedGroup, setSelectedGroup] = useState<Group | null>(null);
@@ -173,13 +175,19 @@ export const ChatPage: React.FC = () => {
       <header className="bg-white shadow-sm border-b">
         <div className="px-4 py-3 flex justify-between items-center">
           <div className="flex items-center space-x-3">
-            <h1 className="text-xl font-bold text-gray-900">Idea Communicator</h1>
+            <button
+              onClick={() => navigate('/dashboard')}
+              className="px-3 py-1.5 text-sm text-gray-700 bg-gray-100 hover:bg-gray-200 rounded transition"
+            >
+              ← Dashboard
+            </button>
+            <h1 className="text-xl font-bold text-gray-900">Chat</h1>
             <span className={`inline-flex items-center px-2 py-1 rounded text-xs font-medium ${isConnected ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
               {isConnected ? '● Connected' : '● Disconnected'}
             </span>
           </div>
           <div className="flex items-center space-x-3">
-            <span className="text-sm text-gray-600">{user?.username}</span>
+            <span className="text-sm text-gray-600">{user?.firstName} {user?.lastName}</span>
             <button
               onClick={() => logout()}
               className="px-3 py-1.5 text-sm text-white bg-red-600 hover:bg-red-700 rounded transition"
