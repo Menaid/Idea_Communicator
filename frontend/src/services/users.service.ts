@@ -1,5 +1,5 @@
-import api from './api.service';
-import { User } from '../types/auth.types';
+import api from './api';
+import { User } from '../types/auth';
 
 export const usersService = {
   async getAll(): Promise<User[]> {

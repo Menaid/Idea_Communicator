@@ -1,5 +1,5 @@
-import api from './api.service';
-import { AuthResponse, LoginCredentials, RegisterData, User } from '../types/auth.types';
+import api from './api';
+import { AuthResponse, LoginData, RegisterData, User } from '../types/auth';
 
 export const authService = {
   async register(data: RegisterData): Promise<AuthResponse> {
@@ -7,7 +7,7 @@ export const authService = {
     return response.data;
   },
 
-  async login(credentials: LoginCredentials): Promise<AuthResponse> {
+  async login(credentials: LoginData): Promise<AuthResponse> {
     const response = await api.post<AuthResponse>('/auth/login', credentials);
     return response.data;
   },

@@ -1,4 +1,4 @@
-import api from './api.service';
+import api from './api';
 import { Group, GroupMember, CreateGroupData, UpdateGroupData } from '../types/group.types';
 
 export const groupsService = {

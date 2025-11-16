@@ -1,4 +1,4 @@
-import api from './api.service';
+import api from './api';
 import { Message, CreateMessageData, UpdateMessageData } from '../types/message.types';
 
 export const messagesService = {

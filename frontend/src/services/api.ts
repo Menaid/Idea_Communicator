@@ -184,6 +184,12 @@ class ApiService {
     }
     return null;
   }
+
+  // Get axios instance for direct use in other services
+  getAxiosInstance(): AxiosInstance {
+    return this.api;
+  }
 }
 
 export const apiService = new ApiService();
+export default apiService.getAxiosInstance();
