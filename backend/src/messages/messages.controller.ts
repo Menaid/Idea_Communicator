@@ -10,6 +10,7 @@ import {
   UseGuards,
   Request,
 } from '@nestjs/common';
+import { Request as ExpressRequest } from 'express';
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiResponse, ApiQuery } from '@nestjs/swagger';
 import { MessagesService } from './messages.service';
 import { CreateMessageDto } from './dto/create-message.dto';
@@ -26,7 +27,7 @@ export class MessagesController {
   @Post()
   @ApiOperation({ summary: 'Send a message to a group' })
   @ApiResponse({ status: 201, description: 'Message sent successfully' })
-  async create(@Request() req, @Body() createMessageDto: CreateMessageDto) {
+  async create(@Request() req: ExpressRequest & { user: any }, @Body() createMessageDto: CreateMessageDto) {
     return this.messagesService.create(req.user.userId, createMessageDto);
   }
 
@@ -36,7 +37,7 @@ export class MessagesController {
   @ApiQuery({ name: 'before', required: false, description: 'Message ID for pagination' })
   @ApiResponse({ status: 200, description: 'Returns messages' })
   async findByGroup(
-    @Request() req,
+    @Request() req: ExpressRequest & { user: any },
     @Param('groupId') groupId: string,
     @Query('limit') limit?: number,
     @Query('before') before?: string,
@@ -47,7 +48,7 @@ export class MessagesController {
   @Get(':id')
   @ApiOperation({ summary: 'Get message by ID' })
   @ApiResponse({ status: 200, description: 'Returns message' })
-  async findOne(@Request() req, @Param('id') id: string) {
+  async findOne(@Request() req: ExpressRequest & { user: any }, @Param('id') id: string) {
     return this.messagesService.findOne(id, req.user.userId);
   }
 
@@ -56,7 +57,7 @@ export class MessagesController {
   @ApiResponse({ status: 200, description: 'Message updated successfully' })
   @ApiResponse({ status: 403, description: 'Only sender can edit' })
   async update(
-    @Request() req,
+    @Request() req: ExpressRequest & { user: any },
     @Param('id') id: string,
     @Body() updateMessageDto: UpdateMessageDto,
   ) {
@@ -67,7 +68,7 @@ export class MessagesController {
   @ApiOperation({ summary: 'Delete message' })
   @ApiResponse({ status: 200, description: 'Message deleted successfully' })
   @ApiResponse({ status: 403, description: 'Only sender can delete' })
-  async remove(@Request() req, @Param('id') id: string) {
+  async remove(@Request() req: ExpressRequest & { user: any }, @Param('id') id: string) {
     await this.messagesService.remove(id, req.user.userId);
     return { message: 'Message deleted successfully' };
   }
