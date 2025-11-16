@@ -55,12 +55,26 @@ export class GroupsService {
   }
 
   async findAll(userId: string): Promise<Group[]> {
+    // Get all group IDs where user is a member
     const memberGroups = await this.groupMembersRepository.find({
       where: { userId, isActive: true },
-      relations: ['group', 'group.createdBy', 'group.members', 'group.members.user'],
+      select: ['groupId', 'lastReadAt'],
     });
 
-    const groups = memberGroups.map(mg => mg.group).filter(g => g.isActive);
+    if (memberGroups.length === 0) {
+      return [];
+    }
+
+    const groupIds = memberGroups.map(mg => mg.groupId);
+
+    // Fetch full group details with members
+    const groups = await this.groupsRepository.find({
+      where: {
+        id: In(groupIds),
+        isActive: true,
+      },
+      relations: ['createdBy', 'members', 'members.user'],
+    });
 
     // Add unread count to each group
     for (const group of groups) {
