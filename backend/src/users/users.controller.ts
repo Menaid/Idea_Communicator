@@ -1,79 +1,149 @@
 import {
   Controller,
   Get,
-  Put,
-  Delete,
   Body,
+  Patch,
   Param,
-  Query,
+  Delete,
   UseGuards,
-  Request,
-  ClassSerializerInterceptor,
-  UseInterceptors,
+  HttpCode,
+  HttpStatus,
+  Post,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBearerAuth,
+} from '@nestjs/swagger';
 import { UsersService } from './users.service';
 import { UpdateUserDto } from './dto/update-user.dto';
-import { UserResponseDto } from './dto/user-response.dto';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { plainToInstance } from 'class-transformer';
+import { ChangePasswordDto } from './dto/change-password.dto';
+import { User, UserRole } from './entities/user.entity';
+import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
+import { RolesGuard } from '../common/guards/roles.guard';
+import { CurrentUser } from '../common/decorators/current-user.decorator';
+import { Roles } from '../common/decorators/roles.decorator';
 
 @ApiTags('users')
 @Controller('users')
-@UseInterceptors(ClassSerializerInterceptor)
+@UseGuards(JwtAuthGuard, RolesGuard)
+@ApiBearerAuth()
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
   @Get()
-  @UseGuards(JwtAuthGuard)
-  @ApiBearerAuth()
-  @ApiOperation({ summary: 'Get all users' })
-  @ApiQuery({ name: 'search', required: false })
-  @ApiQuery({ name: 'limit', required: false })
-  async findAll(
-    @Query('search') search?: string,
-    @Query('limit') limit?: number,
-  ): Promise<UserResponseDto[]> {
-    const users = await this.usersService.findAll(search, limit);
-    return users.map(user => plainToInstance(UserResponseDto, user));
+  @Roles(UserRole.GLOBAL_ADMIN)
+  @ApiOperation({ summary: 'Get all users (admin only)' })
+  @ApiResponse({
+    status: 200,
+    description: 'Returns all users',
+    type: [User],
+  })
+  async findAll(): Promise<User[]> {
+    return this.usersService.findAll();
   }
 
   @Get('me')
-  @UseGuards(JwtAuthGuard)
-  @ApiBearerAuth()
   @ApiOperation({ summary: 'Get current user profile' })
-  async getProfile(@Request() req): Promise<UserResponseDto> {
-    const user = await this.usersService.findOne(req.user.userId);
-    return plainToInstance(UserResponseDto, user);
+  @ApiResponse({
+    status: 200,
+    description: 'Returns current user profile',
+    type: User,
+  })
+  async getProfile(@CurrentUser() user: User): Promise<User> {
+    return this.usersService.findOne(user.id);
   }
 
   @Get(':id')
-  @UseGuards(JwtAuthGuard)
-  @ApiBearerAuth()
   @ApiOperation({ summary: 'Get user by ID' })
-  async findOne(@Param('id') id: string): Promise<UserResponseDto> {
-    const user = await this.usersService.findOne(id);
-    return plainToInstance(UserResponseDto, user);
+  @ApiResponse({
+    status: 200,
+    description: 'Returns user',
+    type: User,
+  })
+  @ApiResponse({ status: 404, description: 'User not found' })
+  async findOne(@Param('id') id: string): Promise<User> {
+    return this.usersService.findOne(id);
   }
 
-  @Put('me')
-  @UseGuards(JwtAuthGuard)
-  @ApiBearerAuth()
+  @Patch('me')
   @ApiOperation({ summary: 'Update current user profile' })
-  async update(
-    @Request() req,
+  @ApiResponse({
+    status: 200,
+    description: 'User successfully updated',
+    type: User,
+  })
+  async updateProfile(
+    @CurrentUser() user: User,
     @Body() updateUserDto: UpdateUserDto,
-  ): Promise<UserResponseDto> {
-    const user = await this.usersService.update(req.user.userId, updateUserDto);
-    return plainToInstance(UserResponseDto, user);
+  ): Promise<User> {
+    return this.usersService.update(user.id, updateUserDto, user.id);
+  }
+
+  @Patch(':id')
+  @Roles(UserRole.GLOBAL_ADMIN)
+  @ApiOperation({ summary: 'Update user by ID (admin only)' })
+  @ApiResponse({
+    status: 200,
+    description: 'User successfully updated',
+    type: User,
+  })
+  @ApiResponse({ status: 404, description: 'User not found' })
+  async update(
+    @Param('id') id: string,
+    @Body() updateUserDto: UpdateUserDto,
+    @CurrentUser() admin: User,
+  ): Promise<User> {
+    return this.usersService.update(id, updateUserDto, admin.id);
+  }
+
+  @Post('me/change-password')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Change current user password' })
+  @ApiResponse({ status: 200, description: 'Password successfully changed' })
+  @ApiResponse({ status: 400, description: 'Invalid current password' })
+  async changePassword(
+    @CurrentUser() user: User,
+    @Body() changePasswordDto: ChangePasswordDto,
+  ): Promise<{ message: string }> {
+    await this.usersService.changePassword(user.id, changePasswordDto);
+    return { message: 'Password successfully changed' };
+  }
+
+  @Get('me/export')
+  @ApiOperation({ summary: 'Export user data (GDPR)' })
+  @ApiResponse({
+    status: 200,
+    description: 'Returns user data export',
+  })
+  async exportData(@CurrentUser() user: User): Promise<any> {
+    return this.usersService.exportUserData(user.id);
   }
 
   @Delete('me')
-  @UseGuards(JwtAuthGuard)
-  @ApiBearerAuth()
-  @ApiOperation({ summary: 'Delete current user account' })
-  async remove(@Request() req): Promise<{ message: string }> {
-    await this.usersService.remove(req.user.userId);
-    return { message: 'User account deleted successfully' };
+  @ApiOperation({ summary: 'Request account deletion (GDPR)' })
+  @ApiResponse({
+    status: 200,
+    description: 'Account deletion requested',
+  })
+  async requestDeletion(
+    @CurrentUser() user: User,
+  ): Promise<{ message: string }> {
+    await this.usersService.remove(user.id);
+    return {
+      message:
+        'Account deletion requested. Your account will be deleted within 30 days.',
+    };
+  }
+
+  @Delete(':id')
+  @Roles(UserRole.GLOBAL_ADMIN)
+  @ApiOperation({ summary: 'Delete user by ID (admin only)' })
+  @ApiResponse({ status: 200, description: 'User successfully deleted' })
+  @ApiResponse({ status: 404, description: 'User not found' })
+  async remove(@Param('id') id: string): Promise<{ message: string }> {
+    await this.usersService.remove(id);
+    return { message: 'User deletion requested' };
   }
 }

@@ -2,60 +2,111 @@ import {
   Controller,
   Post,
   Body,
-  UseGuards,
-  Request,
   HttpCode,
   HttpStatus,
+  Req,
+  UseGuards,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiBearerAuth, ApiResponse } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
+import { Request } from 'express';
 import { AuthService } from './auth.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { AuthResponseDto } from './dto/auth-response.dto';
-import { LocalAuthGuard } from './guards/local-auth.guard';
-import { JwtAuthGuard } from './guards/jwt-auth.guard';
+import { Public } from '../common/decorators/public.decorator';
+import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
+import { CurrentUser } from '../common/decorators/current-user.decorator';
+import { User } from '../users/entities/user.entity';
 
 @ApiTags('auth')
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
+  @Public()
   @Post('register')
   @ApiOperation({ summary: 'Register a new user' })
-  @ApiResponse({ status: 201, description: 'User registered successfully', type: AuthResponseDto })
-  @ApiResponse({ status: 409, description: 'Email or username already exists' })
-  async register(@Body() registerDto: RegisterDto): Promise<AuthResponseDto> {
-    return this.authService.register(registerDto);
+  @ApiResponse({
+    status: 201,
+    description: 'User successfully registered',
+    type: AuthResponseDto,
+  })
+  @ApiResponse({ status: 400, description: 'Bad request' })
+  @ApiResponse({ status: 409, description: 'User already exists' })
+  async register(
+    @Body() registerDto: RegisterDto,
+    @Req() request: Request,
+  ): Promise<AuthResponseDto> {
+    const ipAddress = request.ip;
+    const userAgent = request.headers['user-agent'];
+
+    return this.authService.register(registerDto, ipAddress, userAgent);
   }
 
+  @Public()
   @Post('login')
-  @UseGuards(LocalAuthGuard)
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Login user' })
-  @ApiResponse({ status: 200, description: 'User logged in successfully', type: AuthResponseDto })
+  @ApiOperation({ summary: 'Login with email and password' })
+  @ApiResponse({
+    status: 200,
+    description: 'User successfully logged in',
+    type: AuthResponseDto,
+  })
   @ApiResponse({ status: 401, description: 'Invalid credentials' })
-  async login(@Request() req, @Body() loginDto: LoginDto): Promise<AuthResponseDto> {
-    return this.authService.login(req.user);
+  async login(
+    @Body() loginDto: LoginDto,
+    @Req() request: Request,
+  ): Promise<AuthResponseDto> {
+    const ipAddress = request.ip;
+    const userAgent = request.headers['user-agent'];
+
+    return this.authService.login(loginDto, ipAddress, userAgent);
   }
 
+  @Public()
   @Post('refresh')
-  @UseGuards(JwtAuthGuard)
-  @ApiBearerAuth()
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Refresh access token' })
-  @ApiResponse({ status: 200, description: 'Token refreshed successfully' })
-  @ApiResponse({ status: 401, description: 'Invalid or expired token' })
-  async refresh(@Request() req) {
-    return this.authService.refreshToken(req.user.userId);
+  @ApiResponse({
+    status: 200,
+    description: 'Tokens successfully refreshed',
+    type: AuthResponseDto,
+  })
+  @ApiResponse({ status: 401, description: 'Invalid refresh token' })
+  async refresh(
+    @Body('refreshToken') refreshToken: string,
+    @Req() request: Request,
+  ): Promise<AuthResponseDto> {
+    const ipAddress = request.ip;
+    const userAgent = request.headers['user-agent'];
+
+    return this.authService.refreshTokens(refreshToken, ipAddress, userAgent);
   }
 
-  @Post('logout')
   @UseGuards(JwtAuthGuard)
-  @ApiBearerAuth()
+  @Post('logout')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Logout user' })
-  @ApiResponse({ status: 200, description: 'User logged out successfully' })
-  async logout(@Request() req) {
-    return this.authService.logout(req.user.userId);
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Logout and revoke refresh token' })
+  @ApiResponse({ status: 200, description: 'Successfully logged out' })
+  async logout(
+    @Body('refreshToken') refreshToken: string,
+  ): Promise<{ message: string }> {
+    await this.authService.logout(refreshToken);
+    return { message: 'Successfully logged out' };
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post('me')
+  @HttpCode(HttpStatus.OK)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get current user information' })
+  @ApiResponse({
+    status: 200,
+    description: 'Current user information',
+    type: User,
+  })
+  async me(@CurrentUser() user: User): Promise<User> {
+    return user;
   }
 }
