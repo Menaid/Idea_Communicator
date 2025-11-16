@@ -9,6 +9,7 @@ import {
   UseGuards,
   Request,
 } from '@nestjs/common';
+import { Request as ExpressRequest } from 'express';
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiResponse } from '@nestjs/swagger';
 import { GroupsService } from './groups.service';
 import { CreateGroupDto } from './dto/create-group.dto';
@@ -26,14 +27,14 @@ export class GroupsController {
   @Post()
   @ApiOperation({ summary: 'Create a new group' })
   @ApiResponse({ status: 201, description: 'Group created successfully' })
-  async create(@Request() req, @Body() createGroupDto: CreateGroupDto) {
+  async create(@Request() req: ExpressRequest & { user: any }, @Body() createGroupDto: CreateGroupDto) {
     return this.groupsService.create(req.user.userId, createGroupDto);
   }
 
   @Get()
   @ApiOperation({ summary: 'Get all groups for current user' })
   @ApiResponse({ status: 200, description: 'Returns all groups' })
-  async findAll(@Request() req) {
+  async findAll(@Request() req: ExpressRequest & { user: any }) {
     return this.groupsService.findAll(req.user.userId);
   }
 
@@ -41,7 +42,7 @@ export class GroupsController {
   @ApiOperation({ summary: 'Get group by ID' })
   @ApiResponse({ status: 200, description: 'Returns group details' })
   @ApiResponse({ status: 404, description: 'Group not found' })
-  async findOne(@Request() req, @Param('id') id: string) {
+  async findOne(@Request() req: ExpressRequest & { user: any }, @Param('id') id: string) {
     return this.groupsService.findOne(id, req.user.userId);
   }
 
@@ -50,7 +51,7 @@ export class GroupsController {
   @ApiResponse({ status: 200, description: 'Group updated successfully' })
   @ApiResponse({ status: 403, description: 'Only admins can update' })
   async update(
-    @Request() req,
+    @Request() req: ExpressRequest & { user: any },
     @Param('id') id: string,
     @Body() updateGroupDto: UpdateGroupDto,
   ) {
@@ -61,7 +62,7 @@ export class GroupsController {
   @ApiOperation({ summary: 'Delete group' })
   @ApiResponse({ status: 200, description: 'Group deleted successfully' })
   @ApiResponse({ status: 403, description: 'Only creator/admin can delete' })
-  async remove(@Request() req, @Param('id') id: string) {
+  async remove(@Request() req: ExpressRequest & { user: any }, @Param('id') id: string) {
     await this.groupsService.remove(id, req.user.userId);
     return { message: 'Group deleted successfully' };
   }
@@ -69,7 +70,7 @@ export class GroupsController {
   @Get(':id/members')
   @ApiOperation({ summary: 'Get all members of a group' })
   @ApiResponse({ status: 200, description: 'Returns group members' })
-  async getMembers(@Request() req, @Param('id') id: string) {
+  async getMembers(@Request() req: ExpressRequest & { user: any }, @Param('id') id: string) {
     return this.groupsService.getMembers(id, req.user.userId);
   }
 
@@ -78,7 +79,7 @@ export class GroupsController {
   @ApiResponse({ status: 201, description: 'Member added successfully' })
   @ApiResponse({ status: 403, description: 'Only admins can add members' })
   async addMember(
-    @Request() req,
+    @Request() req: ExpressRequest & { user: any },
     @Param('id') id: string,
     @Body() addMemberDto: AddMemberDto,
   ) {
@@ -90,7 +91,7 @@ export class GroupsController {
   @ApiResponse({ status: 200, description: 'Member removed successfully' })
   @ApiResponse({ status: 403, description: 'Only admins can remove members' })
   async removeMember(
-    @Request() req,
+    @Request() req: ExpressRequest & { user: any },
     @Param('id') id: string,
     @Param('userId') userId: string,
   ) {

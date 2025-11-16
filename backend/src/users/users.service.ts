@@ -163,6 +163,10 @@ export class UsersService {
     });
   }
 
+  async updateOnlineStatus(id: string, status: string): Promise<void> {
+    await this.usersRepository.update(id, { onlineStatus: status });
+  }
+
   async remove(id: string): Promise<void> {
     const user = await this.findOne(id);
 

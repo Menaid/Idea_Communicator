@@ -72,6 +72,9 @@ export class User {
   @Column({ type: 'timestamp', nullable: true })
   lastLoginAt?: Date;
 
+  @Column({ type: 'varchar', length: 20, default: 'offline' })
+  onlineStatus: string;
+
   // GDPR Compliance
   @Column({
     type: 'enum',
