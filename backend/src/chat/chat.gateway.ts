@@ -8,7 +8,7 @@ import {
   ConnectedSocket,
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
-import { UseGuards, Logger } from '@nestjs/common';
+import { UseGuards, Logger, Inject, forwardRef } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { MessagesService } from '../messages/messages.service';
 import { GroupsService } from '../groups/groups.service';
@@ -32,6 +32,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   constructor(
     private jwtService: JwtService,
     private messagesService: MessagesService,
+    @Inject(forwardRef(() => GroupsService))
     private groupsService: GroupsService,
     private usersService: UsersService,
   ) {}
