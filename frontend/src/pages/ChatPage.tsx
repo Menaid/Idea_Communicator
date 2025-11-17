@@ -31,6 +31,7 @@ export const ChatPage: React.FC = () => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [isTyping, setIsTyping] = useState(false);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const [showGroupMenu, setShowGroupMenu] = useState(false);
 
   useEffect(() => {
     loadGroups();
@@ -279,6 +280,53 @@ export const ChatPage: React.FC = () => {
     }
   };
 
+  const isGroupAdmin = () => {
+    if (!selectedGroup || !user) return false;
+    const member = selectedGroup.members?.find(m => m.userId === user.id);
+    return member?.role === 'admin' || selectedGroup.createdById === user.id;
+  };
+
+  const canLeaveGroup = () => {
+    if (!selectedGroup || !user) return false;
+    return selectedGroup.createdById !== user.id;
+  };
+
+  const handleDeleteGroup = async () => {
+    if (!selectedGroup) return;
+
+    if (!window.confirm(`Are you sure you want to delete "${selectedGroup.name}"? This action cannot be undone.`)) {
+      return;
+    }
+
+    try {
+      await groupsService.delete(selectedGroup.id);
+      toast.success('Group deleted successfully');
+      setGroups(groups.filter(g => g.id !== selectedGroup.id));
+      setSelectedGroup(groups.find(g => g.id !== selectedGroup.id) || null);
+      setShowGroupMenu(false);
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || 'Failed to delete group');
+    }
+  };
+
+  const handleLeaveGroup = async () => {
+    if (!selectedGroup || !user) return;
+
+    if (!window.confirm(`Are you sure you want to leave "${selectedGroup.name}"?`)) {
+      return;
+    }
+
+    try {
+      await groupsService.leave(selectedGroup.id, user.id);
+      toast.success('You have left the group');
+      setGroups(groups.filter(g => g.id !== selectedGroup.id));
+      setSelectedGroup(groups.find(g => g.id !== selectedGroup.id) || null);
+      setShowGroupMenu(false);
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || 'Failed to leave group');
+    }
+  };
+
   return (
     <div className="h-screen flex flex-col bg-gray-50">
       {/* Header */}
@@ -350,9 +398,54 @@ export const ChatPage: React.FC = () => {
           {selectedGroup ? (
             <>
               {/* Chat Header */}
-              <div className="bg-white border-b px-4 py-3">
-                <h2 className="font-semibold text-gray-900">{selectedGroup.name}</h2>
-                <p className="text-sm text-gray-500">{selectedGroup.description}</p>
+              <div className="bg-white border-b px-4 py-3 flex justify-between items-center">
+                <div>
+                  <h2 className="font-semibold text-gray-900">{selectedGroup.name}</h2>
+                  <p className="text-sm text-gray-500">{selectedGroup.description}</p>
+                </div>
+                <div className="relative">
+                  <button
+                    onClick={() => setShowGroupMenu(!showGroupMenu)}
+                    className="p-2 hover:bg-gray-100 rounded-full transition"
+                    title="Group options"
+                  >
+                    <svg className="w-5 h-5 text-gray-600" fill="currentColor" viewBox="0 0 20 20">
+                      <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
+                    </svg>
+                  </button>
+
+                  {showGroupMenu && (
+                    <>
+                      <div
+                        className="fixed inset-0 z-10"
+                        onClick={() => setShowGroupMenu(false)}
+                      />
+                      <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border z-20">
+                        {isGroupAdmin() && (
+                          <button
+                            onClick={handleDeleteGroup}
+                            className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50 rounded-t-lg transition"
+                          >
+                            🗑️ Delete Group
+                          </button>
+                        )}
+                        {canLeaveGroup() && (
+                          <button
+                            onClick={handleLeaveGroup}
+                            className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 rounded-b-lg transition"
+                          >
+                            🚪 Leave Group
+                          </button>
+                        )}
+                        {!isGroupAdmin() && !canLeaveGroup() && (
+                          <div className="px-4 py-2 text-sm text-gray-500">
+                            No actions available
+                          </div>
+                        )}
+                      </div>
+                    </>
+                  )}
+                </div>
               </div>
 
               {/* Messages */}
