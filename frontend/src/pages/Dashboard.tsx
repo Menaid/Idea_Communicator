@@ -22,6 +22,12 @@ export function Dashboard() {
               </h1>
             </div>
             <div className="flex items-center space-x-4">
+              <button
+                onClick={() => navigate('/chat')}
+                className="btn btn-primary text-sm"
+              >
+                💬 Go to Chat
+              </button>
               <span className="text-sm text-gray-700">
                 {user?.firstName} {user?.lastName}
               </span>
@@ -169,7 +175,7 @@ export function Dashboard() {
                 <div className="flex items-start">
                   <div className="flex-shrink-0">
                     <svg
-                      className="h-6 w-6 text-gray-400"
+                      className="h-6 w-6 text-green-500"
                       fill="none"
                       viewBox="0 0 24 24"
                       stroke="currentColor"
@@ -178,7 +184,7 @@ export function Dashboard() {
                         strokeLinecap="round"
                         strokeLinejoin="round"
                         strokeWidth={2}
-                        d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+                        d="M5 13l4 4L19 7"
                       />
                     </svg>
                   </div>
@@ -186,7 +192,7 @@ export function Dashboard() {
                     <h4 className="text-sm font-medium text-gray-900">
                       Phase 2: Groups & Chat
                     </h4>
-                    <p className="mt-1 text-sm text-gray-500">Coming next...</p>
+                    <p className="mt-1 text-sm text-gray-500">Completed ✅</p>
                   </div>
                 </div>
 

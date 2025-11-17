@@ -9,6 +9,7 @@ import {
   HttpCode,
   HttpStatus,
   Post,
+  Query,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -42,6 +43,17 @@ export class UsersController {
   })
   async findAll(): Promise<User[]> {
     return this.usersService.findAll();
+  }
+
+  @Get('search')
+  @ApiOperation({ summary: 'Search for users by email, first name, or last name' })
+  @ApiResponse({
+    status: 200,
+    description: 'Returns matching users',
+    type: [User],
+  })
+  async search(@Query('q') query: string): Promise<User[]> {
+    return this.usersService.search(query || '');
   }
 
   @Get('me')

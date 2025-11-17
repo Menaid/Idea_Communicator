@@ -189,6 +189,25 @@ export class AuthService {
     return user;
   }
 
+  async validateUserCredentials(
+    usernameOrEmail: string,
+    password: string,
+  ): Promise<User | null> {
+    const user = await this.usersService.findByEmail(usernameOrEmail);
+
+    if (!user) {
+      return null;
+    }
+
+    const isValidPassword = await user.validatePassword(password);
+
+    if (!isValidPassword) {
+      return null;
+    }
+
+    return user;
+  }
+
   private async generateAuthResponse(
     user: User,
     ipAddress?: string,
