@@ -46,4 +46,8 @@ export const groupsService = {
   async markAsRead(groupId: string): Promise<void> {
     await api.patch(`/groups/${groupId}/mark-read`);
   },
+
+  async leave(groupId: string, userId: string): Promise<void> {
+    await api.delete(`/groups/${groupId}/members/${userId}`);
+  },
 };
