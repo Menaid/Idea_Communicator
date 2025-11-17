@@ -1,12 +1,12 @@
 # ============================================
 # Development Stage
 # ============================================
-FROM node:20-alpine AS development
+FROM node:22-alpine AS development
 
 WORKDIR /app
 
-# Install dependencies for mediasoup (requires build tools)
-RUN apk add --no-cache python3 make g++ linux-headers
+# Install dependencies for mediasoup (requires build tools and pip)
+RUN apk add --no-cache python3 py3-pip make g++ linux-headers
 
 # Copy package files
 COPY package*.json ./
@@ -28,12 +28,12 @@ CMD ["npm", "run", "start:dev"]
 # ============================================
 # Build Stage
 # ============================================
-FROM node:20-alpine AS build
+FROM node:22-alpine AS build
 
 WORKDIR /app
 
 # Install dependencies for mediasoup
-RUN apk add --no-cache python3 make g++ linux-headers
+RUN apk add --no-cache python3 py3-pip make g++ linux-headers
 
 # Copy package files
 COPY package*.json ./
@@ -53,14 +53,14 @@ RUN npm prune --production
 # ============================================
 # Production Stage
 # ============================================
-FROM node:20-alpine AS production
+FROM node:22-alpine AS production
 
 ENV NODE_ENV=production
 
 WORKDIR /app
 
 # Install runtime dependencies for mediasoup
-RUN apk add --no-cache python3 linux-headers
+RUN apk add --no-cache python3 py3-pip linux-headers
 
 # Create non-root user
 RUN addgroup -g 1001 -S nodejs && \
