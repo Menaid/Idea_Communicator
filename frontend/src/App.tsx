@@ -6,6 +6,7 @@ import { ProtectedRoute } from './components/auth/ProtectedRoute';
 import { Login } from './pages/Login';
 import { Register } from './pages/Register';
 import { Dashboard } from './pages/Dashboard';
+import { ChatPage } from './pages/ChatPage';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -29,6 +30,7 @@ function App() {
             {/* Protected routes */}
             <Route element={<ProtectedRoute />}>
               <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/chat" element={<ChatPage />} />
             </Route>
 
             {/* Redirect root to dashboard */}

@@ -163,6 +163,10 @@ export class UsersService {
     });
   }
 
+  async updateOnlineStatus(id: string, status: string): Promise<void> {
+    await this.usersRepository.update(id, { onlineStatus: status });
+  }
+
   async remove(id: string): Promise<void> {
     const user = await this.findOne(id);
 
@@ -223,5 +227,31 @@ export class UsersService {
 
     // Delete audit logs after user deletion
     await this.auditLogService.deleteUserAuditLogs(id);
+  }
+
+  async search(query: string): Promise<User[]> {
+    if (!query || query.trim().length < 2) {
+      return [];
+    }
+
+    const searchTerm = `%${query.toLowerCase()}%`;
+
+    return this.usersRepository
+      .createQueryBuilder('user')
+      .where('user.isActive = :isActive', { isActive: true })
+      .andWhere(
+        '(LOWER(user.email) LIKE :searchTerm OR LOWER(user.firstName) LIKE :searchTerm OR LOWER(user.lastName) LIKE :searchTerm)',
+        { searchTerm }
+      )
+      .select([
+        'user.id',
+        'user.email',
+        'user.firstName',
+        'user.lastName',
+        'user.avatarUrl',
+        'user.onlineStatus',
+      ])
+      .limit(20)
+      .getMany();
   }
 }
