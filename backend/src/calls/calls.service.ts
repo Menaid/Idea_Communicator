@@ -5,7 +5,7 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, IsNull } from 'typeorm';
 import { Call, CallStatus } from './entities/call.entity';
 import { CallParticipant } from './entities/call-participant.entity';
 import { StartCallDto } from './dto/start-call.dto';
@@ -83,7 +83,7 @@ export class CallsService {
 
     // Check if user is already in the call
     const existingParticipant = await this.participantsRepository.findOne({
-      where: { callId, userId, leftAt: null },
+      where: { callId, userId, leftAt: IsNull() },
     });
 
     if (existingParticipant) {
@@ -103,7 +103,7 @@ export class CallsService {
 
   async leaveCall(callId: string, userId: string): Promise<void> {
     const participant = await this.participantsRepository.findOne({
-      where: { callId, userId, leftAt: null },
+      where: { callId, userId, leftAt: IsNull() },
     });
 
     if (!participant) {
@@ -115,7 +115,7 @@ export class CallsService {
 
     // Check if this was the last participant
     const activeParticipants = await this.participantsRepository.count({
-      where: { callId, leftAt: null },
+      where: { callId, leftAt: IsNull() },
     });
 
     if (activeParticipants === 0) {
@@ -196,7 +196,7 @@ export class CallsService {
     isScreenSharing?: boolean,
   ): Promise<CallParticipant> {
     const participant = await this.participantsRepository.findOne({
-      where: { callId, userId, leftAt: null },
+      where: { callId, userId, leftAt: IsNull() },
     });
 
     if (!participant) {
