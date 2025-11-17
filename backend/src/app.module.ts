@@ -15,6 +15,7 @@ import { GroupsModule } from './groups/groups.module';
 import { MessagesModule } from './messages/messages.module';
 import { ChatModule } from './chat/chat.module';
 import { NotificationsModule } from './notifications/notifications.module';
+import { CallsModule } from './calls/calls.module';
 
 @Module({
   imports: [
@@ -53,7 +54,7 @@ import { NotificationsModule } from './notifications/notifications.module';
     MessagesModule,      // Phase 2
     ChatModule,          // Phase 2 - WebSocket Gateway
     NotificationsModule, // Phase 2 - Real-time notifications
-    // CallsModule,        // Phase 3
+    CallsModule,         // Phase 3
     // RecordingsModule,   // Phase 4
     // AiModule,           // Phase 5
   ],
