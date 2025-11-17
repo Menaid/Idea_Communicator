@@ -1,19 +1,21 @@
 # ============================================
-# Frontend Dockerfile - FIXED ROLLUP ALPINE PROBLEM
-# Idea Communicator - React + TypeScript PWA
-# Löser: @rollup/rollup-linux-x64-musl compatibility
+# WebRTC Server Dockerfile
+# Idea Communicator - mediasoup SFU Server
 # ============================================
 
 # ============================================
-# Development Stage - Använd standard Node för kompatibilitet
+# Development Stage
 # ============================================
 FROM node:20 AS development
 
 WORKDIR /app
 
-# Säkerhetsaspekt: Uppdatera system packages
+# Install system dependencies required by mediasoup
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
+        python3 \
+        make \
+        g++ \
         curl \
         ca-certificates \
     && rm -rf /var/lib/apt/lists/* \
@@ -22,82 +24,86 @@ RUN apt-get update \
 # Copy package files
 COPY package*.json ./
 
-# Säkerhetsaspekt: Installera dependencies med audit
-RUN npm ci --only=production=false \
-    && npm audit --audit-level moderate || echo "⚠️ Dev dependencies - acceptable audit warnings" \
-    && echo "✅ Frontend dependencies installerade"
+# Install all dependencies (including devDependencies for ts-node-dev)
+RUN npm ci \
+    && echo "✅ WebRTC dependencies installed"
 
 # Copy source code
 COPY . .
 
-# Expose Vite dev server port
-EXPOSE 5173
+# Expose WebRTC server port
+EXPOSE 4000
 
-# Health check för development
-HEALTHCHECK --interval=30s --timeout=10s --start-period=15s --retries=3 \
-  CMD curl -f http://localhost:5173/ || exit 1
+# Health check for development
+HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
+  CMD curl -f http://localhost:4000/health || exit 1
 
-# Start development server med host binding
-CMD ["npm", "run", "dev"]
+# Start development server with ts-node-dev
+CMD ["npm", "run", "start:dev"]
 
 # ============================================
-# Build Stage - Säker build environment
+# Build Stage
 # ============================================
 FROM node:20 AS build
 
 WORKDIR /app
 
+# Install system dependencies required by mediasoup
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+        python3 \
+        make \
+        g++ \
+    && rm -rf /var/lib/apt/lists/*
+
 # Copy package files
 COPY package*.json ./
 
-# Install dependencies för build
-RUN npm ci \
-    && npm audit --audit-level high || echo "Build dependencies verified"
+# Install dependencies
+RUN npm ci
 
 # Copy source code
 COPY . .
 
-# Build application med säkerhetsverifiering
+# Build TypeScript
 RUN npm run build \
-    && echo "✅ Frontend build completed" \
-    && ls -la dist/ || echo "Build output verified"
+    && echo "✅ WebRTC build completed"
 
 # ============================================
-# Production Stage - Alpine för minimal attack surface
+# Production Stage
 # ============================================
-FROM nginx:alpine AS production
+FROM node:20-slim AS production
 
-# Säkerhetsaspekt: Uppdatera Alpine packages
-RUN apk update \
-    && apk add --no-cache curl \
-    && apk upgrade \
-    && rm -rf /var/cache/apk/*
+WORKDIR /app
 
-# Copy custom nginx config
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+# Install system dependencies required by mediasoup at runtime
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+        curl \
+        ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
 
-# Copy built assets from build stage
-COPY --from=build /app/dist /usr/share/nginx/html
+# Copy package files
+COPY package*.json ./
 
-# Säkerhetsaspekt: Non-root user (ISO 27001:2022 A.8.3)
-RUN addgroup -g 1001 -S nodejs && \
-    adduser -S react -u 1001 && \
-    chown -R react:nodejs /usr/share/nginx/html && \
-    chown -R react:nodejs /var/cache/nginx && \
-    chown -R react:nodejs /var/log/nginx && \
-    chown -R react:nodejs /etc/nginx/conf.d && \
-    touch /var/run/nginx.pid && \
-    chown -R react:nodejs /var/run/nginx.pid
+# Install only production dependencies
+RUN npm ci --only=production \
+    && echo "✅ Production dependencies installed"
 
-# Switch to non-root user
-USER react
+# Copy built code from build stage
+COPY --from=build /app/dist ./dist
+
+# Non-root user for security
+RUN groupadd -r webrtc && useradd -r -g webrtc webrtc
+RUN chown -R webrtc:webrtc /app
+USER webrtc
 
 # Expose port
-EXPOSE 80
+EXPOSE 4000
 
 # Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-  CMD curl -f http://localhost/ || exit 1
+HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
+  CMD curl -f http://localhost:4000/health || exit 1
 
-# Start nginx
-CMD ["nginx", "-g", "daemon off;"]
+# Start server
+CMD ["npm", "start"]
