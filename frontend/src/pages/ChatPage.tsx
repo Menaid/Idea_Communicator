@@ -11,6 +11,8 @@ import { Message } from '../types/message.types';
 import { User } from '../types/auth';
 import { Notification } from '../types/notification';
 import { NotificationBell } from '../components/NotificationBell';
+import { VideoCall } from '../components/video/VideoCall';
+import { callsService, Call } from '../services/calls.service';
 import toast from 'react-hot-toast';
 
 export const ChatPage: React.FC = () => {
@@ -32,6 +34,8 @@ export const ChatPage: React.FC = () => {
   const [isTyping, setIsTyping] = useState(false);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [showGroupMenu, setShowGroupMenu] = useState(false);
+  const [activeCall, setActiveCall] = useState<Call | null>(null);
+  const [isInCall, setIsInCall] = useState(false);
 
   useEffect(() => {
     loadGroups();
@@ -327,6 +331,78 @@ export const ChatPage: React.FC = () => {
     }
   };
 
+  const handleStartCall = async () => {
+    if (!selectedGroup || !user) return;
+
+    try {
+      // Create call in backend
+      const call = await callsService.createCall({
+        groupId: selectedGroup.id,
+        type: 'video',
+      });
+
+      // Join the call
+      await callsService.joinCall(call.id);
+
+      // Set active call and enter call UI
+      setActiveCall(call);
+      setIsInCall(true);
+
+      toast.success('Call started');
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || 'Failed to start call');
+    }
+  };
+
+  const handleJoinCall = async (call: Call) => {
+    if (!user) return;
+
+    try {
+      // Join the call in backend
+      await callsService.joinCall(call.id);
+
+      // Set active call and enter call UI
+      setActiveCall(call);
+      setIsInCall(true);
+
+      toast.success('Joined call');
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || 'Failed to join call');
+    }
+  };
+
+  const handleLeaveCall = async () => {
+    if (!activeCall || !user) return;
+
+    try {
+      // Leave call in backend
+      await callsService.leaveCall(activeCall.id);
+
+      // Exit call UI
+      setIsInCall(false);
+      setActiveCall(null);
+
+      toast.success('Left call');
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || 'Failed to leave call');
+    }
+  };
+
+  // Get participant names for video call
+  const getParticipantNames = (): Map<string, string> => {
+    const names = new Map<string, string>();
+
+    if (selectedGroup?.members) {
+      selectedGroup.members.forEach((member) => {
+        if (member.user) {
+          names.set(member.userId, `${member.user.firstName} ${member.user.lastName}`);
+        }
+      });
+    }
+
+    return names;
+  };
+
   return (
     <div className="h-screen flex flex-col bg-gray-50">
       {/* Header */}
@@ -403,7 +479,20 @@ export const ChatPage: React.FC = () => {
                   <h2 className="font-semibold text-gray-900">{selectedGroup.name}</h2>
                   <p className="text-sm text-gray-500">{selectedGroup.description}</p>
                 </div>
-                <div className="relative">
+                <div className="flex items-center gap-2">
+                  {/* Start Video Call Button */}
+                  <button
+                    onClick={handleStartCall}
+                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition flex items-center gap-2"
+                    title="Start video call"
+                  >
+                    <svg className="w-5 h-5" fill="none" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24" stroke="currentColor">
+                      <path d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                    </svg>
+                    Start Call
+                  </button>
+
+                  <div className="relative">
                   <button
                     onClick={() => setShowGroupMenu(!showGroupMenu)}
                     className="p-2 hover:bg-gray-100 rounded-full transition"
@@ -667,6 +756,17 @@ export const ChatPage: React.FC = () => {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Video Call UI */}
+      {isInCall && activeCall && user && (
+        <VideoCall
+          callId={activeCall.id}
+          userId={user.id}
+          userName={`${user.firstName} ${user.lastName}`}
+          participantNames={getParticipantNames()}
+          onLeave={handleLeaveCall}
+        />
       )}
     </div>
   );
