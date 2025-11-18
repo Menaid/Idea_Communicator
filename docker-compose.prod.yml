@@ -1,3 +1,7 @@
+version: '3.8'
+
+# Production Docker Compose - Uses pre-built images from Docker Hub
+# Usage: docker-compose -f docker-compose.prod.yml up -d
 
 services:
   # PostgreSQL Database
@@ -35,7 +39,7 @@ services:
     networks:
       - ideacomm-network
     healthcheck:
-      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD:-change_me_in_production}", "ping"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -63,16 +67,13 @@ services:
       timeout: 20s
       retries: 3
 
-  # Backend API - NestJS
+  # Backend API - NestJS (Pre-built from Docker Hub)
   api:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
-      target: development
+    image: meno107/ideacomm-api:latest
     container_name: ideacomm-api
     restart: unless-stopped
     environment:
-      NODE_ENV: ${NODE_ENV:-development}
+      NODE_ENV: ${NODE_ENV:-production}
       PORT: ${API_PORT:-3000}
       DATABASE_URL: postgresql://${POSTGRES_USER:-ideacomm_user}:${POSTGRES_PASSWORD:-change_me_in_production}@database:5432/${POSTGRES_DB:-ideacomm}
       REDIS_URL: redis://:${REDIS_PASSWORD:-change_me_in_production}@redis:6379
@@ -83,8 +84,6 @@ services:
       JWT_SECRET: ${JWT_SECRET:-change_me_in_production_use_long_random_string}
       WEBRTC_URL: http://webrtc:4000
     volumes:
-      - ./backend:/app
-      - /app/node_modules
       - ./backend/uploads:/app/uploads
     ports:
       - "3000:3000"
@@ -97,28 +96,21 @@ services:
         condition: service_healthy
       storage:
         condition: service_healthy
-    command: npm run start:dev
 
-  # WebRTC Media Server - mediasoup
+  # WebRTC Media Server - mediasoup (Pre-built from Docker Hub)
   webrtc:
-    build:
-      context: ./webrtc
-      dockerfile: Dockerfile
-      target: development
+    image: meno107/ideacomm-webrtc:latest
     container_name: ideacomm-webrtc
     restart: unless-stopped
     environment:
-      NODE_ENV: ${NODE_ENV:-development}
+      NODE_ENV: ${NODE_ENV:-production}
       PORT: 4000
       RTC_MIN_PORT: ${RTC_MIN_PORT:-40000}
       RTC_MAX_PORT: ${RTC_MAX_PORT:-40100}
       ANNOUNCED_IP: ${ANNOUNCED_IP:-127.0.0.1}
       REDIS_URL: redis://:${REDIS_PASSWORD:-change_me_in_production}@redis:6379
-    volumes:
-      - ./webrtc:/app
-      - /app/node_modules
     ports:
-      - "4000:4000"
+      - "8001:4000"
       - "40000-40100:40000-40100/udp"
       - "40000-40100:40000-40100/tcp"
     networks:
@@ -126,18 +118,14 @@ services:
     depends_on:
       redis:
         condition: service_healthy
-    command: npm run start:dev
 
-  # AI Worker - Background processing
+  # AI Worker - Background processing (Pre-built from Docker Hub)
   ai-worker:
-    build:
-      context: ./ai-worker
-      dockerfile: Dockerfile
-      target: development
+    image: meno107/ideacomm-ai-worker:latest
     container_name: ideacomm-ai-worker
     restart: unless-stopped
     environment:
-      NODE_ENV: ${NODE_ENV:-development}
+      NODE_ENV: ${NODE_ENV:-production}
       REDIS_URL: redis://:${REDIS_PASSWORD:-change_me_in_production}@redis:6379
       DATABASE_URL: postgresql://${POSTGRES_USER:-ideacomm_user}:${POSTGRES_PASSWORD:-change_me_in_production}@database:5432/${POSTGRES_DB:-ideacomm}
       MINIO_ENDPOINT: storage
@@ -149,8 +137,6 @@ services:
       DEEPGRAM_API_KEY: ${DEEPGRAM_API_KEY}
       AI_PROVIDER: ${AI_PROVIDER:-openai}
     volumes:
-      - ./ai-worker:/app
-      - /app/node_modules
       - ./ai-worker/temp:/app/temp
     networks:
       - ideacomm-network
@@ -161,25 +147,17 @@ services:
         condition: service_healthy
       storage:
         condition: service_healthy
-    command: npm run start:dev
 
-  # Frontend - React PWA
+  # Frontend - React PWA (Pre-built from Docker Hub)
   frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
-      target: development
+    image: meno107/ideacomm-frontend:latest
     container_name: ideacomm-frontend
     restart: unless-stopped
     environment:
-      NODE_ENV: ${NODE_ENV:-development}
+      NODE_ENV: ${NODE_ENV:-production}
       REACT_APP_API_URL: ${REACT_APP_API_URL:-http://localhost:3000}
       REACT_APP_WS_URL: ${REACT_APP_WS_URL:-ws://localhost:3000}
-      REACT_APP_WEBRTC_URL: ${REACT_APP_WEBRTC_URL:-http://localhost:4000}
-    volumes:
-      - ./frontend:/app
-      - /app/node_modules
-      - /app/.next
+      REACT_APP_WEBRTC_URL: ${REACT_APP_WEBRTC_URL:-http://localhost:8001}
     ports:
       - "5173:5173"
     networks:
@@ -187,7 +165,6 @@ services:
     depends_on:
       - api
       - webrtc
-    command: npm run dev
 
 networks:
   ideacomm-network:
