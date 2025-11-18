@@ -50,11 +50,11 @@
 2. **Verify services are running:**
    ```bash
    # Check WebRTC service
-   curl http://localhost:4000/health
+   curl http://localhost:5000/health
    # Expected: {"status":"healthy","timestamp":"...","service":"webrtc"}
 
    # Check WebRTC stats
-   curl http://localhost:4000/stats
+   curl http://localhost:5000/stats
    # Expected: {"rooms":0,"peers":0,"workers":12}
 
    # Check Backend
@@ -206,7 +206,7 @@ Open 3-4 browser windows/tabs
 2. Check that port 4000 is not blocked
 3. Verify `VITE_WEBRTC_URL` in `frontend/.env`:
    ```
-   VITE_WEBRTC_URL=http://localhost:4000
+   VITE_WEBRTC_URL=http://localhost:5000
    ```
 
 ### Problem: Cannot hear audio
@@ -273,7 +273,7 @@ docker-compose logs -f webrtc
 
 ### Check Stats:
 ```bash
-curl http://localhost:4000/stats
+curl http://localhost:5000/stats
 ```
 
 Expected response:
