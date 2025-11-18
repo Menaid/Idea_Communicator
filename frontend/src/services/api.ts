@@ -141,7 +141,7 @@ class ApiService {
   }
 
   async getMe(): Promise<User> {
-    const response = await this.api.post<User>('/auth/me');
+    const response = await this.api.get<User>('/auth/me');
     localStorage.setItem('user', JSON.stringify(response.data));
     return response.data;
   }

@@ -535,6 +535,7 @@ export const ChatPage: React.FC = () => {
                     </>
                   )}
                 </div>
+                </div>
               </div>
 
               {/* Messages */}
