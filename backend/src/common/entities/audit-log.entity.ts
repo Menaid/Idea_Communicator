@@ -43,6 +43,12 @@ export enum AuditAction {
   GROUP_DELETED = 'group_deleted',
   USER_ADDED_TO_GROUP = 'user_added_to_group',
   USER_REMOVED_FROM_GROUP = 'user_removed_from_group',
+
+  // Call actions (Phase 3)
+  CALL_STARTED = 'call_started',
+  CALL_ENDED = 'call_ended',
+  CALL_JOINED = 'call_joined',
+  CALL_LEFT = 'call_left',
 }
 
 @Entity('audit_logs')
