@@ -88,6 +88,29 @@ export class CallsController {
   }
 
   /**
+   * Get active call for a group (if any)
+   * IMPORTANT: This route must come BEFORE 'group/:groupId' to match correctly
+   */
+  @Get('group/:groupId/active')
+  @ApiOperation({ summary: 'Get active call for a group (if exists)' })
+  @ApiParam({ name: 'groupId', description: 'Group ID' })
+  @ApiResponse({
+    status: 200,
+    description: 'Active call or null',
+    type: Call,
+    nullable: true,
+  })
+  async findActiveCallForGroup(
+    @Param('groupId') groupId: string,
+    @CurrentUser() user: User,
+  ): Promise<Call | null> {
+    // Verify user is member of the group
+    await this.callsService['groupsService'].findOne(groupId, user.id);
+
+    return this.callsService.findActiveCallByGroup(groupId);
+  }
+
+  /**
    * Get call history for a group
    */
   @Get('group/:groupId')
