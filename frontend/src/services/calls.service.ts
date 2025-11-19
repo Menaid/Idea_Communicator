@@ -87,6 +87,16 @@ class CallsService {
   }
 
   /**
+   * Get active call for a group (if any)
+   */
+  async getActiveCallForGroup(groupId: string): Promise<Call | null> {
+    const calls = await this.getGroupCallHistory(groupId);
+    // Find the first active call
+    const activeCall = calls.find(call => call.status === 'active');
+    return activeCall || null;
+  }
+
+  /**
    * Get active calls for current user
    */
   async getActiveCalls(): Promise<Call[]> {

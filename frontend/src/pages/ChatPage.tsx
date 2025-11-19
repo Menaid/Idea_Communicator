@@ -359,50 +359,53 @@ export const ChatPage: React.FC = () => {
     if (!selectedGroup || !user) return;
 
     try {
-      // First check if there are any active calls for this user
-      const activeCalls = await callsService.getActiveCalls();
+      console.log('[ChatPage] handleStartCall - checking for existing calls in group');
 
-      if (activeCalls.length > 0) {
-        // There's an active call
-        const activeCall = activeCalls[0];
+      // FIRST: Check if there's already an active call in THIS GROUP
+      const groupActiveCall = await callsService.getActiveCallForGroup(selectedGroup.id);
 
-        // Check if it's for the current group
-        if (activeCall.groupId === selectedGroup.id) {
-          // Rejoin the existing call
-          const confirmed = window.confirm(
-            'You have an active call in this group. Do you want to rejoin it?'
-          );
+      if (groupActiveCall) {
+        console.log('[ChatPage] Found existing active call in group:', groupActiveCall.id);
+        // There's already an active call in this group - join it
+        await callsService.joinCall(groupActiveCall.id);
+        setActiveCall(groupActiveCall);
+        setIsInCall(true);
+        toast.success('Joined call');
+        return;
+      }
 
-          if (confirmed) {
-            // Join the call in backend (user might have left before)
-            await callsService.joinCall(activeCall.id);
+      console.log('[ChatPage] No active call in group, checking user active calls');
 
-            setActiveCall(activeCall);
-            setIsInCall(true);
-            toast.success('Rejoining call');
-          }
-          return;
+      // SECOND: Check if user has active calls in OTHER groups
+      const userActiveCalls = await callsService.getActiveCalls();
+
+      if (userActiveCalls.length > 0) {
+        const activeCall = userActiveCalls[0];
+
+        // User has active call in a different group
+        const confirmed = window.confirm(
+          'You have an active call in another group. Do you want to leave it and start a call here?'
+        );
+
+        if (confirmed) {
+          console.log('[ChatPage] User confirmed leaving other call');
+          await callsService.leaveCall(activeCall.id);
+          // Continue to create new call below
         } else {
-          // Active call in different group - offer to end it
-          const confirmed = window.confirm(
-            'You have an active call in another group. Do you want to end it and start a new call here?'
-          );
-
-          if (confirmed) {
-            // End the old call
-            await callsService.leaveCall(activeCall.id);
-            // Continue to create new call below
-          } else {
-            return;
-          }
+          console.log('[ChatPage] User cancelled');
+          return;
         }
       }
 
-      // Create call in backend
+      console.log('[ChatPage] Creating new call in group');
+
+      // THIRD: Create a new call
       const call = await callsService.createCall({
         groupId: selectedGroup.id,
         type: 'video',
       });
+
+      console.log('[ChatPage] Call created:', call.id);
 
       // Join the call
       await callsService.joinCall(call.id);
@@ -415,7 +418,7 @@ export const ChatPage: React.FC = () => {
     } catch (error: any) {
       const message = error.response?.data?.message || 'Failed to start call';
       toast.error(message);
-      console.error('Start call error:', error);
+      console.error('[ChatPage] Start call error:', error);
     }
   };
 

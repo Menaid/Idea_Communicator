@@ -27,20 +27,27 @@ export function CallNotificationProvider({ children }: { children: ReactNode }) 
   const [pendingCall, setPendingCall] = useState<PendingCall | null>(null);
   const [groups, setGroups] = useState<any[]>([]);
 
-  // Load user's groups
+  // Load user's groups and join all group rooms for notifications
   useEffect(() => {
-    if (isAuthenticated) {
-      const loadGroups = async () => {
+    if (isAuthenticated && socket && isConnected) {
+      const loadGroupsAndJoinRooms = async () => {
         try {
           const userGroups = await groupsService.getAll();
           setGroups(userGroups);
+
+          // Join all group rooms to receive call notifications
+          console.log('[CallNotification] Joining', userGroups.length, 'group rooms');
+          for (const group of userGroups) {
+            socket.emit('group:join', { groupId: group.id });
+            console.log('[CallNotification] Joined room for group:', group.name);
+          }
         } catch (error) {
           console.error('[CallNotification] Error loading groups:', error);
         }
       };
-      loadGroups();
+      loadGroupsAndJoinRooms();
     }
-  }, [isAuthenticated]);
+  }, [isAuthenticated, socket, isConnected]);
 
   // Listen for incoming call notifications
   useEffect(() => {

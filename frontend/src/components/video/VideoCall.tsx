@@ -67,6 +67,9 @@ export function VideoCall({
   // Use ref to track current stream so cleanup always has latest value
   const currentStreamRef = useRef<MediaStream | null>(null);
 
+  // Use ref to track if media has been initialized (prevent double init)
+  const mediaInitializedRef = useRef(false);
+
   // Update ref whenever stream changes
   useEffect(() => {
     currentStreamRef.current = currentStream;
@@ -88,6 +91,9 @@ export function VideoCall({
         });
       }
 
+      // Reset media initialized flag so component can reinitialize if remounted
+      mediaInitializedRef.current = false;
+
       // Leave WebRTC session
       leave();
 
@@ -96,13 +102,16 @@ export function VideoCall({
   }, [leave]); // Only depends on leave function
 
   /**
-   * Initialize media stream
+   * Initialize media stream - ONLY when WebRTC connects
    */
   useEffect(() => {
     const initMedia = async () => {
-      if (isConnected && !currentStream) {
+      // Only initialize once when connected
+      if (isConnected && !mediaInitializedRef.current) {
         try {
           console.log('[VideoCall] Acquiring media stream...');
+          mediaInitializedRef.current = true; // Set BEFORE async operation to prevent race
+
           const stream = await getMediaStream();
           console.log('[VideoCall] Media stream acquired, publishing...');
           setCurrentStream(stream);
@@ -110,12 +119,14 @@ export function VideoCall({
           console.log('[VideoCall] Stream published successfully');
         } catch (err) {
           console.error('[VideoCall] Failed to get media stream:', err);
+          mediaInitializedRef.current = false; // Reset on error so user can retry
         }
       }
     };
 
     initMedia();
-  }, [isConnected, currentStream, getMediaStream, publishStream]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isConnected]); // Only depend on isConnected, not the functions or stream (intentional)
 
   /**
    * Handle mute toggle
