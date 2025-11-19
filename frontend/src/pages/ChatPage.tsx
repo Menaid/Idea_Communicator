@@ -40,6 +40,11 @@ export const ChatPage: React.FC = () => {
   // Ref to track if auto-join has been triggered (prevent duplicate joins)
   const autoJoinTriggeredRef = useRef(false);
 
+  // Debug: Log when call state changes
+  useEffect(() => {
+    console.log('[ChatPage] Call state changed:', { isInCall, activeCallId: activeCall?.id });
+  }, [isInCall, activeCall]);
+
   useEffect(() => {
     loadGroups();
     loadUnreadNotificationsCount();

@@ -70,6 +70,11 @@ export function VideoCall({
   // Use ref to track if media has been initialized (prevent double init)
   const mediaInitializedRef = useRef(false);
 
+  // Debug: Log when callId prop changes (indicates parent re-render)
+  useEffect(() => {
+    console.log('[VideoCall] Props changed, callId:', callId);
+  }, [callId]);
+
   // Update ref whenever stream changes
   useEffect(() => {
     currentStreamRef.current = currentStream;
