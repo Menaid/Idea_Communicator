@@ -96,9 +96,12 @@ export function VideoCall({
     const initMedia = async () => {
       if (isConnected && !currentStream) {
         try {
+          console.log('[VideoCall] Acquiring media stream...');
           const stream = await getMediaStream();
+          console.log('[VideoCall] Media stream acquired, publishing...');
           setCurrentStream(stream);
           await publishStream(stream);
+          console.log('[VideoCall] Stream published successfully');
         } catch (err) {
           console.error('[VideoCall] Failed to get media stream:', err);
         }
@@ -106,7 +109,7 @@ export function VideoCall({
     };
 
     initMedia();
-  }, [isConnected, currentStream]);
+  }, [isConnected, currentStream, getMediaStream, publishStream]);
 
   /**
    * Handle mute toggle
@@ -233,6 +236,14 @@ export function VideoCall({
       }
     }
   };
+
+  // Debug logging
+  console.log('[VideoCall] Render state:', {
+    isConnecting,
+    isConnected,
+    hasCurrentStream: !!currentStream,
+    hasError: !!error,
+  });
 
   // Loading state
   if (isConnecting) {

@@ -165,7 +165,8 @@ export const ChatPage: React.FC = () => {
       socket.off('notification:group-invitation');
       socket.off('call:incoming');
     };
-  }, [socket, selectedGroup, user, activeCall, groups, handleStartCall]);
+    // Note: handleStartCall not in deps - it's called from event handler, not a dependency
+  }, [socket, selectedGroup, user, activeCall, groups]);
 
   useEffect(() => {
     scrollToBottom();

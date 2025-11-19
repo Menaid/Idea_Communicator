@@ -175,6 +175,7 @@ export function useWebRTC({ callId, userId, enabled = true }: UseWebRTCProps): U
       });
 
       if (mountedRef.current) {
+        console.log('[useWebRTC] Setting isConnected=true, isConnecting=false');
         setIsConnected(true);
         setIsConnecting(false);
       }
