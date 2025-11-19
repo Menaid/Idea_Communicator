@@ -347,6 +347,9 @@ export const ChatPage: React.FC = () => {
           );
 
           if (confirmed) {
+            // Join the call in backend (user might have left before)
+            await callsService.joinCall(activeCall.id);
+
             setActiveCall(activeCall);
             setIsInCall(true);
             toast.success('Rejoining call');
