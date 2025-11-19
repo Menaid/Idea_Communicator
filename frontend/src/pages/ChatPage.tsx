@@ -33,7 +33,6 @@ export const ChatPage: React.FC = () => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [isTyping, setIsTyping] = useState(false);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const [showGroupMenu, setShowGroupMenu] = useState(false);
   const [activeCall, setActiveCall] = useState<Call | null>(null);
   const [isInCall, setIsInCall] = useState(false);
 
@@ -307,7 +306,6 @@ export const ChatPage: React.FC = () => {
       toast.success('Group deleted successfully');
       setGroups(groups.filter(g => g.id !== selectedGroup.id));
       setSelectedGroup(groups.find(g => g.id !== selectedGroup.id) || null);
-      setShowGroupMenu(false);
     } catch (error: any) {
       toast.error(error.response?.data?.message || 'Failed to delete group');
     }
@@ -325,7 +323,6 @@ export const ChatPage: React.FC = () => {
       toast.success('You have left the group');
       setGroups(groups.filter(g => g.id !== selectedGroup.id));
       setSelectedGroup(groups.find(g => g.id !== selectedGroup.id) || null);
-      setShowGroupMenu(false);
     } catch (error: any) {
       toast.error(error.response?.data?.message || 'Failed to leave group');
     }
@@ -451,20 +448,54 @@ export const ChatPage: React.FC = () => {
 
           <div className="flex-1 overflow-y-auto">
             {groups.map((group) => (
-              <button
+              <div
                 key={group.id}
-                onClick={() => setSelectedGroup(group)}
-                className={`w-full p-3 text-left hover:bg-gray-50 transition border-b relative ${selectedGroup?.id === group.id ? 'bg-indigo-50 border-l-4 border-indigo-600' : ''}`}
+                className={`relative border-b ${selectedGroup?.id === group.id ? 'bg-indigo-50 border-l-4 border-indigo-600' : ''}`}
               >
-                <div className="font-medium text-gray-900">{group.name}</div>
-                <div className="text-xs text-gray-500 truncate">{group.description || 'No description'}</div>
-                <div className="text-xs text-gray-400 mt-1">{group.members?.length || 0} members</div>
-                {group.unreadCount > 0 && (
-                  <div className="absolute top-2 right-2 bg-red-600 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">
-                    {group.unreadCount > 99 ? '99+' : group.unreadCount}
-                  </div>
-                )}
-              </button>
+                <button
+                  onClick={() => setSelectedGroup(group)}
+                  className="w-full p-3 text-left hover:bg-gray-50 transition"
+                >
+                  <div className="font-medium text-gray-900 pr-8">{group.name}</div>
+                  <div className="text-xs text-gray-500 truncate">{group.description || 'No description'}</div>
+                  <div className="text-xs text-gray-400 mt-1">{group.members?.length || 0} members</div>
+                  {group.unreadCount > 0 && (
+                    <div className="absolute top-2 right-2 bg-red-600 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">
+                      {group.unreadCount > 99 ? '99+' : group.unreadCount}
+                    </div>
+                  )}
+                </button>
+
+                {/* Group Actions */}
+                <div className="px-3 pb-2 flex gap-2">
+                  {group.createdById === user?.id && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedGroup(group);
+                        handleDeleteGroup();
+                      }}
+                      className="flex-1 px-2 py-1 text-xs text-red-600 hover:bg-red-50 rounded transition border border-red-200"
+                      title="Delete group"
+                    >
+                      Delete
+                    </button>
+                  )}
+                  {group.createdById !== user?.id && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedGroup(group);
+                        handleLeaveGroup();
+                      }}
+                      className="flex-1 px-2 py-1 text-xs text-gray-600 hover:bg-gray-100 rounded transition border border-gray-300"
+                      title="Leave group"
+                    >
+                      Leave
+                    </button>
+                  )}
+                </div>
+              </div>
             ))}
           </div>
         </div>
@@ -479,63 +510,17 @@ export const ChatPage: React.FC = () => {
                   <h2 className="font-semibold text-gray-900">{selectedGroup.name}</h2>
                   <p className="text-sm text-gray-500">{selectedGroup.description}</p>
                 </div>
-                <div className="flex items-center gap-2">
-                  {/* Start Video Call Button */}
-                  <button
-                    onClick={handleStartCall}
-                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition flex items-center gap-2"
-                    title="Start video call"
-                  >
-                    <svg className="w-5 h-5" fill="none" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24" stroke="currentColor">
-                      <path d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                    </svg>
-                    Start Call
-                  </button>
-
-                  <div className="relative">
-                  <button
-                    onClick={() => setShowGroupMenu(!showGroupMenu)}
-                    className="p-2 hover:bg-gray-100 rounded-full transition"
-                    title="Group options"
-                  >
-                    <svg className="w-5 h-5 text-gray-600" fill="currentColor" viewBox="0 0 20 20">
-                      <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
-                    </svg>
-                  </button>
-
-                  {showGroupMenu && (
-                    <>
-                      <div
-                        className="fixed inset-0 z-10"
-                        onClick={() => setShowGroupMenu(false)}
-                      />
-                      <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border z-20">
-                        {isGroupAdmin() && (
-                          <button
-                            onClick={handleDeleteGroup}
-                            className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50 rounded-t-lg transition"
-                          >
-                            🗑️ Delete Group
-                          </button>
-                        )}
-                        {canLeaveGroup() && (
-                          <button
-                            onClick={handleLeaveGroup}
-                            className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 rounded-b-lg transition"
-                          >
-                            🚪 Leave Group
-                          </button>
-                        )}
-                        {!isGroupAdmin() && !canLeaveGroup() && (
-                          <div className="px-4 py-2 text-sm text-gray-500">
-                            No actions available
-                          </div>
-                        )}
-                      </div>
-                    </>
-                  )}
-                </div>
-                </div>
+                {/* Start Video Call Button */}
+                <button
+                  onClick={handleStartCall}
+                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition flex items-center gap-2"
+                  title="Start video call"
+                >
+                  <svg className="w-5 h-5" fill="none" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24" stroke="currentColor">
+                    <path d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                  </svg>
+                  Start Call
+                </button>
               </div>
 
               {/* Messages */}
