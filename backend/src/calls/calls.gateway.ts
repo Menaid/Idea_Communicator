@@ -64,7 +64,7 @@ export class CallsGateway implements OnGatewayConnection, OnGatewayDisconnect {
       if (!this.activeConnections.has(userId)) {
         this.activeConnections.set(userId, new Set());
       }
-      this.activeConnections.get(userId).add(client.id);
+      this.activeConnections.get(userId)!.add(client.id);
 
       this.logger.log(`User ${userId} connected to calls gateway (${client.id})`);
 
@@ -151,7 +151,7 @@ export class CallsGateway implements OnGatewayConnection, OnGatewayDisconnect {
       if (!this.callRooms.has(callId)) {
         this.callRooms.set(callId, new Set());
       }
-      this.callRooms.get(callId).add(client.id);
+      this.callRooms.get(callId)!.add(client.id);
 
       // Notify other participants
       this.server.to(callId).emit('participant-joined', {
