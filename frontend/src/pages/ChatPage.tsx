@@ -119,13 +119,53 @@ export const ChatPage: React.FC = () => {
       setUnreadNotificationsCount(prev => prev + 1);
     });
 
+    socket.on('call:incoming', (data: {
+      callId: string;
+      groupId: string;
+      initiatedBy: string;
+      type: string;
+      timestamp: Date;
+    }) => {
+      // Only show notification if not already in a call and not the initiator
+      if (!activeCall && data.initiatedBy !== user?.id && data.groupId === selectedGroup?.id) {
+        const groupName = groups.find(g => g.id === data.groupId)?.name || 'this group';
+        toast((t) => (
+          <div className="flex flex-col gap-2">
+            <span className="font-semibold">📞 Incoming Call</span>
+            <span className="text-sm">Someone started a call in {groupName}</span>
+            <div className="flex gap-2 mt-2">
+              <button
+                onClick={() => {
+                  toast.dismiss(t.id);
+                  handleStartCall();
+                }}
+                className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-md text-sm font-medium"
+              >
+                Join Call
+              </button>
+              <button
+                onClick={() => toast.dismiss(t.id)}
+                className="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-md text-sm font-medium"
+              >
+                Dismiss
+              </button>
+            </div>
+          </div>
+        ), {
+          duration: 15000,
+          position: 'top-center',
+        });
+      }
+    });
+
     return () => {
       socket.off('message:new');
       socket.off('typing:start');
       socket.off('typing:stop');
       socket.off('notification:group-invitation');
+      socket.off('call:incoming');
     };
-  }, [socket, selectedGroup, user]);
+  }, [socket, selectedGroup, user, activeCall, groups, handleStartCall]);
 
   useEffect(() => {
     scrollToBottom();
