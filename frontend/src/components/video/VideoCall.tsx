@@ -237,10 +237,16 @@ export function VideoCall({
   // Loading state
   if (isConnecting) {
     return (
-      <div className="fixed inset-0 bg-gray-950 flex items-center justify-center">
+      <div className="fixed inset-0 bg-gray-950 flex flex-col items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-white text-lg">Connecting to call...</p>
+          <p className="text-white text-lg mb-8">Connecting to call...</p>
+          <button
+            onClick={handleLeave}
+            className="px-6 py-3 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-colors"
+          >
+            Cancel
+          </button>
         </div>
       </div>
     );

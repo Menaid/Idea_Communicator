@@ -369,13 +369,24 @@ export function useWebRTC({ callId, userId, enabled = true }: UseWebRTCProps): U
       initialize();
     }
 
+    // Cleanup ONLY on unmount, not on dependency changes
     return () => {
       mountedRef.current = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [enabled, initialize]);
+
+  /**
+   * Cleanup on unmount
+   */
+  useEffect(() => {
+    return () => {
       if (isConnected) {
         leave();
       }
     };
-  }, [enabled, initialize]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return {
     isConnected,
