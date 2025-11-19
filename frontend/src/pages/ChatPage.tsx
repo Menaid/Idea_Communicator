@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useSocket } from '../hooks/useSocket';
 import { groupsService } from '../services/groups.service';
@@ -18,6 +18,7 @@ import toast from 'react-hot-toast';
 export const ChatPage: React.FC = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { socket, isConnected } = useSocket();
   const [groups, setGroups] = useState<Group[]>([]);
   const [selectedGroup, setSelectedGroup] = useState<Group | null>(null);
@@ -119,58 +120,43 @@ export const ChatPage: React.FC = () => {
       setUnreadNotificationsCount(prev => prev + 1);
     });
 
-    socket.on('call:incoming', (data: {
-      callId: string;
-      groupId: string;
-      initiatedBy: string;
-      type: string;
-      timestamp: Date;
-    }) => {
-      // Only show notification if not already in a call and not the initiator
-      if (!activeCall && data.initiatedBy !== user?.id && data.groupId === selectedGroup?.id) {
-        const groupName = groups.find(g => g.id === data.groupId)?.name || 'this group';
-        toast((t) => (
-          <div className="flex flex-col gap-2">
-            <span className="font-semibold">📞 Incoming Call</span>
-            <span className="text-sm">Someone started a call in {groupName}</span>
-            <div className="flex gap-2 mt-2">
-              <button
-                onClick={() => {
-                  toast.dismiss(t.id);
-                  handleStartCall();
-                }}
-                className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-md text-sm font-medium"
-              >
-                Join Call
-              </button>
-              <button
-                onClick={() => toast.dismiss(t.id)}
-                className="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-md text-sm font-medium"
-              >
-                Dismiss
-              </button>
-            </div>
-          </div>
-        ), {
-          duration: 15000,
-          position: 'top-center',
-        });
-      }
-    });
-
     return () => {
       socket.off('message:new');
       socket.off('typing:start');
       socket.off('typing:stop');
       socket.off('notification:group-invitation');
-      socket.off('call:incoming');
     };
-    // Note: handleStartCall not in deps - it's called from event handler, not a dependency
-  }, [socket, selectedGroup, user, activeCall, groups]);
+  }, [socket, selectedGroup, user]);
 
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  // Handle URL query parameters for auto-selecting group and auto-joining calls
+  useEffect(() => {
+    const groupId = searchParams.get('groupId');
+    const autoJoinCall = searchParams.get('autoJoinCall');
+
+    if (groupId && groups.length > 0) {
+      const targetGroup = groups.find(g => g.id === groupId);
+      if (targetGroup && targetGroup.id !== selectedGroup?.id) {
+        console.log('[ChatPage] Auto-selecting group from URL:', targetGroup.name);
+        setSelectedGroup(targetGroup);
+
+        // Auto-join call if requested
+        if (autoJoinCall === 'true' && !isInCall) {
+          console.log('[ChatPage] Auto-joining call from URL notification');
+          // Delay to ensure group is selected and VideoCall component can mount
+          setTimeout(() => {
+            handleStartCall();
+          }, 500);
+        }
+
+        // Clear query params after handling
+        setSearchParams({});
+      }
+    }
+  }, [groups, searchParams, selectedGroup, isInCall]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });

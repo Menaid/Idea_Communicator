@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import toast from 'react-hot-toast';
 import { useWebRTC } from '../../hooks/useWebRTC';
 import { useMediaDevices } from '../../hooks/useMediaDevices';
 import { useCallState } from '../../hooks/useCallState';
@@ -63,6 +64,14 @@ export function VideoCall({
   const [showDeviceSelector, setShowDeviceSelector] = useState(false);
   const [currentStream, setCurrentStream] = useState<MediaStream | null>(null);
 
+  // Use ref to track current stream so cleanup always has latest value
+  const currentStreamRef = useRef<MediaStream | null>(null);
+
+  // Update ref whenever stream changes
+  useEffect(() => {
+    currentStreamRef.current = currentStream;
+  }, [currentStream]);
+
   /**
    * Cleanup on unmount - IMPORTANT: This ensures call is properly left
    * even if user navigates away without clicking "Leave Call"
@@ -71,23 +80,20 @@ export function VideoCall({
     return () => {
       console.log('[VideoCall] Component unmounting, cleaning up...');
 
-      // Stop all media tracks
-      if (currentStream) {
-        currentStream.getTracks().forEach((track) => {
+      // Stop all media tracks using ref (always has latest stream)
+      if (currentStreamRef.current) {
+        currentStreamRef.current.getTracks().forEach((track) => {
+          console.log('[VideoCall] Stopping track on unmount:', track.kind, track.id);
           track.stop();
-          console.log('[VideoCall] Stopped track:', track.kind);
         });
       }
 
       // Leave WebRTC session
       leave();
 
-      // Call parent callback to clean up state
-      if (onLeave) {
-        onLeave();
-      }
+      console.log('[VideoCall] Unmount cleanup completed');
     };
-  }, []); // Empty dependency array - only run on unmount
+  }, [leave]); // Only depends on leave function
 
   /**
    * Initialize media stream
@@ -221,6 +227,8 @@ export function VideoCall({
    * Handle device change
    */
   const handleDeviceChange = async (type: 'audio' | 'video', deviceId: string) => {
+    console.log(`[VideoCall] Changing ${type} device to:`, deviceId);
+
     if (type === 'audio') {
       setSelectedAudioDevice(deviceId);
     } else {
@@ -229,17 +237,58 @@ export function VideoCall({
 
     // Restart stream with new device
     if (currentStream && !isScreenSharing) {
-      // Stop current stream
-      currentStream.getTracks().forEach((track) => track.stop());
+      console.log('[VideoCall] Stopping current stream for device change');
 
+      // Stop current stream
+      currentStream.getTracks().forEach((track) => {
+        console.log(`[VideoCall] Stopping ${track.kind} track`);
+        track.stop();
+      });
+
+      // Unpublish current stream (closes producers on server)
       await unpublishStream();
 
       try {
-        const stream = await getMediaStream();
+        // IMPORTANT: Pass constraints directly to use the NEW device
+        // (state updates are async, so we can't rely on selectedAudioDevice/selectedVideoDevice being updated yet)
+        const constraints: MediaStreamConstraints = {
+          audio: type === 'audio'
+            ? { deviceId: { exact: deviceId } }
+            : selectedAudioDevice
+              ? { deviceId: { exact: selectedAudioDevice } }
+              : true,
+          video: type === 'video'
+            ? {
+                deviceId: { exact: deviceId },
+                width: { ideal: 1280 },
+                height: { ideal: 720 },
+                frameRate: { ideal: 30 },
+              }
+            : selectedVideoDevice
+              ? {
+                  deviceId: { exact: selectedVideoDevice },
+                  width: { ideal: 1280 },
+                  height: { ideal: 720 },
+                  frameRate: { ideal: 30 },
+                }
+              : {
+                  width: { ideal: 1280 },
+                  height: { ideal: 720 },
+                  frameRate: { ideal: 30 },
+                },
+        };
+
+        console.log('[VideoCall] Getting new stream with constraints:', constraints);
+        const stream = await getMediaStream(constraints);
+
+        console.log('[VideoCall] New stream acquired, publishing...');
         setCurrentStream(stream);
         await publishStream(stream);
+
+        console.log('[VideoCall] Device change complete');
       } catch (err) {
         console.error('[VideoCall] Failed to restart stream with new device:', err);
+        toast.error('Failed to change device. Please try again.');
       }
     }
   };
