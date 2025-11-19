@@ -1,0 +1,16 @@
+{
+  "name": "Idea Communicator",
+  "short_name": "IdeaComm",
+  "description": "AI-powered communication app for teams",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#2563eb",
+  "icons": [
+    {
+      "src": "/vite.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}
