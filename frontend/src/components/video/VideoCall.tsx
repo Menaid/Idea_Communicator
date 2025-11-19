@@ -195,19 +195,26 @@ export function VideoCall({
    * Handle leaving the call
    */
   const handleLeave = async () => {
-    // Stop all tracks
+    console.log('[VideoCall] handleLeave called');
+
+    // Stop all media tracks
     if (currentStream) {
-      currentStream.getTracks().forEach((track) => track.stop());
+      currentStream.getTracks().forEach((track) => {
+        console.log('[VideoCall] Stopping track:', track.kind, track.id);
+        track.stop();
+      });
       setCurrentStream(null);
     }
 
     // Leave WebRTC session
     await leave();
 
-    // Call parent callback
+    // Call parent callback to exit call UI
     if (onLeave) {
       onLeave();
     }
+
+    console.log('[VideoCall] handleLeave completed');
   };
 
   /**

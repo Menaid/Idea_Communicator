@@ -146,9 +146,9 @@ export function useWebRTC({ callId, userId, enabled = true }: UseWebRTCProps): U
         await subscribeToProducerInternal({ id: producerId, peerId, userId: producerUserId, kind });
       });
 
-      // 9. Listen for peer closed
-      signalingService.on('peerClosed', ({ peerId }) => {
-        console.log('[useWebRTC] Peer closed:', peerId);
+      // 9. Listen for peer left (someone disconnected from call)
+      signalingService.on('peerLeft', ({ peerId, userId: leftUserId }) => {
+        console.log('[useWebRTC] Peer left:', { peerId, userId: leftUserId });
         setRemoteParticipants((prev) => {
           const next = new Map(prev);
           next.delete(peerId);
@@ -346,12 +346,19 @@ export function useWebRTC({ callId, userId, enabled = true }: UseWebRTCProps): U
       // Unpublish stream
       await unpublishStream();
 
-      // Leave room
+      // Leave room (notifies server and other peers)
       await signalingService.leaveRoom(callId);
 
-      // Cleanup
+      // Cleanup local WebRTC resources
       webrtcService.cleanup();
-      signalingService.disconnect();
+
+      // Remove event listeners
+      signalingService.off('newProducer');
+      signalingService.off('peerLeft');
+      signalingService.off('producerClosed');
+
+      // Note: Don't disconnect signaling - keep it for future calls
+      // Only disconnect WebRTC transports, not the signaling socket
 
       setIsConnected(false);
       setRemoteParticipants(new Map());
