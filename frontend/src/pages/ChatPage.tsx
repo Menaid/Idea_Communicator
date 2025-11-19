@@ -37,6 +37,9 @@ export const ChatPage: React.FC = () => {
   const [activeCall, setActiveCall] = useState<Call | null>(null);
   const [isInCall, setIsInCall] = useState(false);
 
+  // Ref to track if auto-join has been triggered (prevent duplicate joins)
+  const autoJoinTriggeredRef = useRef(false);
+
   useEffect(() => {
     loadGroups();
     loadUnreadNotificationsCount();
@@ -143,9 +146,11 @@ export const ChatPage: React.FC = () => {
         console.log('[ChatPage] Auto-selecting group from URL:', targetGroup.name);
         setSelectedGroup(targetGroup);
 
-        // Auto-join call if requested
-        if (autoJoinCall === 'true' && !isInCall) {
+        // Auto-join call if requested (only once!)
+        if (autoJoinCall === 'true' && !autoJoinTriggeredRef.current) {
           console.log('[ChatPage] Auto-joining call from URL notification');
+          autoJoinTriggeredRef.current = true; // Mark as triggered
+
           // Delay to ensure group is selected and VideoCall component can mount
           setTimeout(() => {
             handleStartCall();
@@ -156,7 +161,7 @@ export const ChatPage: React.FC = () => {
         setSearchParams({});
       }
     }
-  }, [groups, searchParams, selectedGroup, isInCall]);
+  }, [groups, searchParams, selectedGroup]); // Removed isInCall from dependencies!
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -449,6 +454,9 @@ export const ChatPage: React.FC = () => {
       // Exit call UI
       setIsInCall(false);
       setActiveCall(null);
+
+      // Reset auto-join flag so user can join next call via notification
+      autoJoinTriggeredRef.current = false;
 
       toast.success('Left call');
     } catch (error: any) {
