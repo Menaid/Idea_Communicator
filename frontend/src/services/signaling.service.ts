@@ -249,9 +249,11 @@ class SignalingService {
       this.socket.emit(event, data, (response: SocketResponse<T>) => {
         console.log('[Signaling] Response:', event, response);
 
-        if (response.success && response.data !== undefined) {
-          resolve(response.data);
+        if (response.success) {
+          // Success - resolve with data (even if undefined)
+          resolve(response.data as T);
         } else {
+          // Failure - reject with error message
           reject(new Error(response.error || 'Unknown error'));
         }
       });
