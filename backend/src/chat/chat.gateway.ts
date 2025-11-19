@@ -219,4 +219,17 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
     this.logger.log(`Sent group invitation notification to user ${userId} for group ${groupId}`);
   }
+
+  // Public method for notifying group members about incoming calls
+  notifyCallCreated(groupId: string, call: any) {
+    this.server.to(`group:${groupId}`).emit('call:incoming', {
+      callId: call.id,
+      groupId: call.groupId,
+      initiatedBy: call.initiatedById,
+      type: call.type,
+      timestamp: new Date(),
+    });
+
+    this.logger.log(`Sent call notification to group ${groupId}, call ${call.id}`);
+  }
 }

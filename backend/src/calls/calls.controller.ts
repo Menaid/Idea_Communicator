@@ -19,6 +19,7 @@ import {
   ApiQuery,
 } from '@nestjs/swagger';
 import { CallsService } from './calls.service';
+import { ChatGateway } from '../chat/chat.gateway';
 import { CreateCallDto } from './dto/create-call.dto';
 import { EndCallDto, EndCallReason } from './dto/end-call.dto';
 import { Call } from './entities/call.entity';
@@ -38,7 +39,10 @@ import { User } from '../users/entities/user.entity';
 @UseGuards(JwtAuthGuard)
 @Controller('calls')
 export class CallsController {
-  constructor(private readonly callsService: CallsService) {}
+  constructor(
+    private readonly callsService: CallsService,
+    private readonly chatGateway: ChatGateway,
+  ) {}
 
   /**
    * Create a new call
@@ -56,7 +60,12 @@ export class CallsController {
     @Body() createCallDto: CreateCallDto,
     @CurrentUser() user: User,
   ): Promise<Call> {
-    return this.callsService.create(createCallDto, user.id);
+    const call = await this.callsService.create(createCallDto, user.id);
+
+    // Notify group members via WebSocket (using chat namespace)
+    this.chatGateway.notifyCallCreated(createCallDto.groupId, call);
+
+    return call;
   }
 
   /**

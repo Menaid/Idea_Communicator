@@ -5,6 +5,7 @@ import { CallsService } from './calls.service';
 import { CallsGateway } from './calls.gateway';
 import { Call } from './entities/call.entity';
 import { GroupsModule } from '../groups/groups.module';
+import { ChatModule } from '../chat/chat.module';
 import { CommonModule } from '../common/common.module';
 
 /**
@@ -13,7 +14,7 @@ import { CommonModule } from '../common/common.module';
  * Handles voice/video call functionality
  * - REST API for call management
  * - WebSocket gateway for real-time signaling
- * - Integration with Groups
+ * - Integration with Groups and Chat
  *
  * Phase 3 Implementation
  */
@@ -21,6 +22,7 @@ import { CommonModule } from '../common/common.module';
   imports: [
     TypeOrmModule.forFeature([Call]),
     forwardRef(() => GroupsModule), // Prevent circular dependency
+    forwardRef(() => ChatModule), // Import ChatModule to use ChatGateway for notifications
     CommonModule,
   ],
   controllers: [CallsController],
