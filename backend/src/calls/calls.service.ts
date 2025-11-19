@@ -6,7 +6,7 @@ import {
   Logger,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, In } from 'typeorm';
 import { Call, CallStatus, CallType } from './entities/call.entity';
 import { CreateCallDto } from './dto/create-call.dto';
 import { GroupsService } from '../groups/groups.service';
@@ -112,13 +112,17 @@ export class CallsService {
   }
 
   /**
-   * Find active call in a group
+   * Find active or waiting call in a group
+   * IMPORTANT: Includes WAITING status to catch calls that haven't been joined yet
    */
   async findActiveCallByGroup(groupId: string): Promise<Call | null> {
     return this.callRepository.findOne({
       where: {
         groupId,
-        status: CallStatus.ACTIVE,
+        status: In([CallStatus.ACTIVE, CallStatus.WAITING]),
+      },
+      order: {
+        createdAt: 'DESC', // Get most recent if multiple exist
       },
     });
   }
