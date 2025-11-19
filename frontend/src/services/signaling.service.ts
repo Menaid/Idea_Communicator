@@ -20,7 +20,7 @@ import type {
   ServerToClientEvents,
 } from '../types/webrtc.types';
 
-const WEBRTC_URL = import.meta.env.VITE_WEBRTC_URL || 'http://localhost:4000';
+const WEBRTC_URL = import.meta.env.VITE_WEBRTC_URL || 'http://localhost:5000';
 
 /**
  * Signaling Service
