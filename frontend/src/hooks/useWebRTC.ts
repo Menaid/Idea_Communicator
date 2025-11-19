@@ -188,7 +188,7 @@ export function useWebRTC({ callId, userId, enabled = true }: UseWebRTCProps): U
         setIsConnecting(false);
       }
     }
-  }, [callId, userId, enabled, isConnecting, isConnected]);
+  }, [callId, userId, enabled]); // Removed isConnecting, isConnected from deps - they're checked in guard, not used in logic
 
   /**
    * Subscribe to a producer (internal)
@@ -366,11 +366,12 @@ export function useWebRTC({ callId, userId, enabled = true }: UseWebRTCProps): U
    * Initialize on mount
    */
   useEffect(() => {
+    mountedRef.current = true;
+
     if (enabled) {
       initialize();
     }
 
-    // Cleanup ONLY on unmount, not on dependency changes
     return () => {
       mountedRef.current = false;
     };
