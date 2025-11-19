@@ -64,6 +64,32 @@ export function VideoCall({
   const [currentStream, setCurrentStream] = useState<MediaStream | null>(null);
 
   /**
+   * Cleanup on unmount - IMPORTANT: This ensures call is properly left
+   * even if user navigates away without clicking "Leave Call"
+   */
+  useEffect(() => {
+    return () => {
+      console.log('[VideoCall] Component unmounting, cleaning up...');
+
+      // Stop all media tracks
+      if (currentStream) {
+        currentStream.getTracks().forEach((track) => {
+          track.stop();
+          console.log('[VideoCall] Stopped track:', track.kind);
+        });
+      }
+
+      // Leave WebRTC session
+      leave();
+
+      // Call parent callback to clean up state
+      if (onLeave) {
+        onLeave();
+      }
+    };
+  }, []); // Empty dependency array - only run on unmount
+
+  /**
    * Initialize media stream
    */
   useEffect(() => {

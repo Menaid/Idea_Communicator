@@ -332,6 +332,42 @@ export const ChatPage: React.FC = () => {
     if (!selectedGroup || !user) return;
 
     try {
+      // First check if there are any active calls for this user
+      const activeCalls = await callsService.getActiveCalls();
+
+      if (activeCalls.length > 0) {
+        // There's an active call
+        const activeCall = activeCalls[0];
+
+        // Check if it's for the current group
+        if (activeCall.groupId === selectedGroup.id) {
+          // Rejoin the existing call
+          const confirmed = window.confirm(
+            'You have an active call in this group. Do you want to rejoin it?'
+          );
+
+          if (confirmed) {
+            setActiveCall(activeCall);
+            setIsInCall(true);
+            toast.success('Rejoining call');
+          }
+          return;
+        } else {
+          // Active call in different group - offer to end it
+          const confirmed = window.confirm(
+            'You have an active call in another group. Do you want to end it and start a new call here?'
+          );
+
+          if (confirmed) {
+            // End the old call
+            await callsService.leaveCall(activeCall.id);
+            // Continue to create new call below
+          } else {
+            return;
+          }
+        }
+      }
+
       // Create call in backend
       const call = await callsService.createCall({
         groupId: selectedGroup.id,
@@ -347,7 +383,9 @@ export const ChatPage: React.FC = () => {
 
       toast.success('Call started');
     } catch (error: any) {
-      toast.error(error.response?.data?.message || 'Failed to start call');
+      const message = error.response?.data?.message || 'Failed to start call';
+      toast.error(message);
+      console.error('Start call error:', error);
     }
   };
 
