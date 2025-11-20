@@ -6,7 +6,7 @@ import {
   Logger,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, In } from 'typeorm';
+import { Repository } from 'typeorm';
 import { Call, CallStatus, CallType } from './entities/call.entity';
 import { CreateCallDto } from './dto/create-call.dto';
 import { GroupsService } from '../groups/groups.service';
@@ -37,6 +37,7 @@ export class CallsService {
 
   /**
    * Create a new call in a group
+   * Returns existing call if one already exists (handles race conditions gracefully)
    */
   async create(createCallDto: CreateCallDto, userId: string): Promise<Call> {
     const { groupId, type = CallType.VIDEO, metadata = {} } = createCallDto;
@@ -50,9 +51,11 @@ export class CallsService {
     // Check if there's already an active call in this group
     const existingCall = await this.findActiveCallByGroup(groupId);
     if (existingCall) {
-      throw new BadRequestException(
-        'There is already an active call in this group',
+      this.logger.log(
+        `[CREATE] Call already exists in group ${groupId}: ${existingCall.id} (status: ${existingCall.status})`,
       );
+      // Return existing call instead of throwing error (handles race conditions)
+      return existingCall;
     }
 
     // Create the call
@@ -121,19 +124,20 @@ export class CallsService {
   /**
    * Find active or waiting call in a group
    * IMPORTANT: Includes WAITING status to catch calls that haven't been joined yet
+   * Using query builder for better transaction handling and SQL visibility
    */
   async findActiveCallByGroup(groupId: string): Promise<Call | null> {
     this.logger.log(`[findActiveCallByGroup] Searching for active/waiting call in group ${groupId}`);
 
-    const call = await this.callRepository.findOne({
-      where: {
-        groupId,
-        status: In([CallStatus.ACTIVE, CallStatus.WAITING]),
-      },
-      order: {
-        createdAt: 'DESC', // Get most recent if multiple exist
-      },
-    });
+    // Use query builder for explicit parameter binding and better transaction handling
+    const call = await this.callRepository
+      .createQueryBuilder('call')
+      .where('call.groupId = :groupId', { groupId })
+      .andWhere('call.status IN (:...statuses)', {
+        statuses: [CallStatus.ACTIVE, CallStatus.WAITING],
+      })
+      .orderBy('call.createdAt', 'DESC')
+      .getOne();
 
     this.logger.log(`[findActiveCallByGroup] Result for group ${groupId}:`, {
       found: !!call,

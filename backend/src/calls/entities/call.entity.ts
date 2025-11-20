@@ -37,6 +37,7 @@ export enum CallType {
 @Entity('calls')
 @Index(['groupId', 'createdAt'])
 @Index(['status', 'createdAt'])
+@Index(['groupId', 'status']) // Optimize active call lookups by group
 export class Call {
   @ApiProperty({ description: 'Unique call identifier' })
   @PrimaryGeneratedColumn('uuid')
