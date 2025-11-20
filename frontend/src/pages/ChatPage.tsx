@@ -389,22 +389,42 @@ export const ChatPage: React.FC = () => {
     if (!selectedGroup || !user) return;
 
     try {
-      console.log('[ChatPage] handleStartCall - checking for existing calls in group');
+      const startTime = Date.now();
+      console.log('[ChatPage] ========================================');
+      console.log('[ChatPage] handleStartCall START', {
+        timestamp: new Date().toISOString(),
+        groupId: selectedGroup.id,
+        groupName: selectedGroup.name,
+        userId: user.id,
+      });
 
       // FIRST: Check if there's already an active call in THIS GROUP
+      console.log('[ChatPage] STEP 1: Checking for active call in group...');
+      const checkStartTime = Date.now();
       const groupActiveCall = await callsService.getActiveCallForGroup(selectedGroup.id);
+      console.log('[ChatPage] STEP 1 COMPLETE:', {
+        duration: Date.now() - checkStartTime + 'ms',
+        foundCall: !!groupActiveCall,
+        callId: groupActiveCall?.id,
+        callStatus: groupActiveCall?.status,
+      });
 
       if (groupActiveCall) {
-        console.log('[ChatPage] Found existing active call in group:', groupActiveCall.id);
+        console.log('[ChatPage] ✅ Found existing active call - JOINING', {
+          callId: groupActiveCall.id,
+          status: groupActiveCall.status,
+          participants: groupActiveCall.participants,
+        });
         // There's already an active call in this group - join it
         await callsService.joinCall(groupActiveCall.id);
         setActiveCall(groupActiveCall);
         setIsInCall(true);
         toast.success('Joined call');
+        console.log('[ChatPage] ========================================');
         return;
       }
 
-      console.log('[ChatPage] No active call in group, checking user active calls');
+      console.log('[ChatPage] ❌ No active call in group - checking user active calls in OTHER groups');
 
       // SECOND: Check if user has active calls in OTHER groups
       const userActiveCalls = await callsService.getActiveCalls();
@@ -427,7 +447,8 @@ export const ChatPage: React.FC = () => {
         }
       }
 
-      console.log('[ChatPage] Creating new call in group');
+      console.log('[ChatPage] STEP 3: Creating new call in group...');
+      const createStartTime = Date.now();
 
       // THIRD: Create a new call
       const call = await callsService.createCall({
@@ -435,17 +456,26 @@ export const ChatPage: React.FC = () => {
         type: 'video',
       });
 
-      console.log('[ChatPage] Call created:', call.id);
+      console.log('[ChatPage] STEP 3 COMPLETE - Call created:', {
+        duration: Date.now() - createStartTime + 'ms',
+        callId: call.id,
+        status: call.status,
+        groupId: call.groupId,
+      });
 
       // Join the call
+      console.log('[ChatPage] Joining the newly created call...');
       await callsService.joinCall(call.id);
 
       // Set active call and enter call UI
       setActiveCall(call);
       setIsInCall(true);
 
+      console.log('[ChatPage] ========================================');
       toast.success('Call started');
     } catch (error: any) {
+      console.log('[ChatPage] ❌ ERROR in handleStartCall:', error);
+      console.log('[ChatPage] ========================================');
       const message = error.response?.data?.message || 'Failed to start call';
       toast.error(message);
       console.error('[ChatPage] Start call error:', error);

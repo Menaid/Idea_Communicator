@@ -90,15 +90,30 @@ class CallsService {
    * Get active call for a group (if any)
    */
   async getActiveCallForGroup(groupId: string): Promise<Call | null> {
+    console.log(`[CallsService] GET /api/calls/group/${groupId}/active`);
+
     try {
       const response = await axios.get(`${API_URL}/api/calls/group/${groupId}/active`, {
         headers: this.getHeaders(),
       });
+
+      console.log(`[CallsService] Active call response:`, {
+        status: response.status,
+        hasData: !!response.data,
+        callId: response.data?.id,
+        callStatus: response.data?.status,
+        participants: response.data?.participants,
+      });
+
       return response.data;
-    } catch (error) {
+    } catch (error: any) {
       // If backend returns error, log and return null
       // This allows call creation to proceed
-      console.warn('[CallsService] Failed to get active call for group:', error);
+      console.error('[CallsService] Failed to get active call for group:', {
+        error: error.message,
+        status: error.response?.status,
+        data: error.response?.data,
+      });
       return null;
     }
   }

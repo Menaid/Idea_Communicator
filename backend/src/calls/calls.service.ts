@@ -82,8 +82,15 @@ export class CallsService {
     });
 
     this.logger.log(
-      `Call ${savedCall.id} created in group ${groupId} by user ${userId}`,
+      `[CREATE] Call ${savedCall.id} created in group ${groupId} by user ${userId} - Status: ${savedCall.status}`,
     );
+    console.log('[CREATE] Saved call details:', {
+      id: savedCall.id,
+      groupId: savedCall.groupId,
+      status: savedCall.status,
+      participants: savedCall.participants,
+      createdAt: savedCall.createdAt,
+    });
 
     return savedCall;
   }
@@ -116,7 +123,9 @@ export class CallsService {
    * IMPORTANT: Includes WAITING status to catch calls that haven't been joined yet
    */
   async findActiveCallByGroup(groupId: string): Promise<Call | null> {
-    return this.callRepository.findOne({
+    this.logger.log(`[findActiveCallByGroup] Searching for active/waiting call in group ${groupId}`);
+
+    const call = await this.callRepository.findOne({
       where: {
         groupId,
         status: In([CallStatus.ACTIVE, CallStatus.WAITING]),
@@ -125,6 +134,16 @@ export class CallsService {
         createdAt: 'DESC', // Get most recent if multiple exist
       },
     });
+
+    this.logger.log(`[findActiveCallByGroup] Result for group ${groupId}:`, {
+      found: !!call,
+      callId: call?.id,
+      status: call?.status,
+      createdAt: call?.createdAt,
+      participants: call?.participants,
+    });
+
+    return call;
   }
 
   /**

@@ -104,10 +104,21 @@ export class CallsController {
     @Param('groupId') groupId: string,
     @CurrentUser() user: User,
   ): Promise<Call | null> {
+    console.log(`[CallsController] GET /group/${groupId}/active - User: ${user.id}`);
+
     // Verify user is member of the group
     await this.callsService['groupsService'].findOne(groupId, user.id);
 
-    return this.callsService.findActiveCallByGroup(groupId);
+    const activeCall = await this.callsService.findActiveCallByGroup(groupId);
+
+    console.log(`[CallsController] Active call result:`, {
+      found: !!activeCall,
+      callId: activeCall?.id,
+      status: activeCall?.status,
+      participants: activeCall?.participants,
+    });
+
+    return activeCall;
   }
 
   /**
