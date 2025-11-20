@@ -70,6 +70,9 @@ export function VideoCall({
   // Use ref to track if media has been initialized (prevent double init)
   const mediaInitializedRef = useRef(false);
 
+  // Use ref to track leave function so cleanup always has latest version
+  const leaveRef = useRef(leave);
+
   // Debug: Log when callId prop changes (indicates parent re-render)
   useEffect(() => {
     console.log('[VideoCall] Props changed, callId:', callId);
@@ -80,13 +83,21 @@ export function VideoCall({
     currentStreamRef.current = currentStream;
   }, [currentStream]);
 
+  // Update leaveRef whenever leave function changes
+  useEffect(() => {
+    leaveRef.current = leave;
+  }, [leave]);
+
   /**
    * Cleanup on unmount - IMPORTANT: This ensures call is properly left
    * even if user navigates away without clicking "Leave Call"
+   *
+   * CRITICAL: Empty dependencies array to ONLY run on actual unmount,
+   * not when leave function reference changes!
    */
   useEffect(() => {
     return () => {
-      console.log('[VideoCall] Component unmounting, cleaning up...');
+      console.log('[VideoCall] Component ACTUALLY unmounting (not just leave ref change)');
 
       // Stop all media tracks using ref (always has latest stream)
       if (currentStreamRef.current) {
@@ -99,12 +110,12 @@ export function VideoCall({
       // Reset media initialized flag so component can reinitialize if remounted
       mediaInitializedRef.current = false;
 
-      // Leave WebRTC session
-      leave();
+      // Leave WebRTC session using ref (always has latest leave function)
+      leaveRef.current();
 
       console.log('[VideoCall] Unmount cleanup completed');
     };
-  }, [leave]); // Only depends on leave function
+  }, []); // Empty deps = ONLY run cleanup on actual unmount!
 
   /**
    * Initialize media stream - ONLY when WebRTC connects
