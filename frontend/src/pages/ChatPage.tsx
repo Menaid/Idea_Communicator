@@ -40,10 +40,30 @@ export const ChatPage: React.FC = () => {
   // Ref to track if auto-join has been triggered (prevent duplicate joins)
   const autoJoinTriggeredRef = useRef(false);
 
+  // Debug: Track render count
+  const renderCountRef = useRef(0);
+  renderCountRef.current++;
+  console.log(`[ChatPage] Render #${renderCountRef.current}`, {
+    isInCall,
+    activeCallId: activeCall?.id,
+    selectedGroupId: selectedGroup?.id
+  });
+
   // Debug: Log when call state changes
   useEffect(() => {
     console.log('[ChatPage] Call state changed:', { isInCall, activeCallId: activeCall?.id });
-  }, [isInCall, activeCall]);
+
+    // Log the condition that controls VideoCall rendering
+    if (isInCall && activeCall && user) {
+      console.log('[ChatPage] ✅ VideoCall SHOULD BE VISIBLE');
+    } else {
+      console.log('[ChatPage] ❌ VideoCall HIDDEN - Reason:', {
+        isInCall,
+        hasActiveCall: !!activeCall,
+        hasUser: !!user
+      });
+    }
+  }, [isInCall, activeCall, user]);
 
   useEffect(() => {
     loadGroups();
