@@ -98,7 +98,6 @@ export class CallsController {
     status: 200,
     description: 'Active call or null',
     type: Call,
-    nullable: true,
   })
   async findActiveCallForGroup(
     @Param('groupId') groupId: string,
